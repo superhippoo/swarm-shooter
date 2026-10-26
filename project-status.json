@@ -50,7 +50,7 @@
   },
   "git": {
     "branch": "main",
-    "commit": "2dbb940",
+    "commit": "HEAD",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
     "remoteSync": "pushed:main"
   },
