@@ -4,9 +4,9 @@
     "name": "SWARM//ZERO",
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
-  "currentPhase": "완료: MVP와 전체 검증",
-  "currentTask": "전체 13개 Chromium 테스트 통과. 최종 커밋 준비",
-  "updatedAt": "2026-10-26T05:53:25Z",
+  "currentPhase": "후속: 다른 PC 작업 재개 지원",
+  "currentTask": "PROJECT_MASTER.md 작성·검토와 원격 push 준비",
+  "updatedAt": "2026-10-26T06:16:43Z",
   "tasks": [
     { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
     { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
@@ -14,7 +14,8 @@
     { "id": "vertical-slice", "owner": "frontend", "role": "프론트엔드", "title": "이동·사격·전투 수직 슬라이스", "status": "done", "evidence": ["Vitest 8/8과 프로덕션 빌드 통과", "실제 WASD·마우스·R·Esc·재시작 Chromium 테스트 통과", "artifacts/vertical-slice-combat.png에서 발사·명중·처치 확인"], "updatedAt": "2026-10-26T01:46:05Z" },
     { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
     { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "done", "evidence": ["scout 83초·HP 243/400·192처치로 실제 완주", "heavy 71초·HP 388/520·171처치로 실제 완주", "두 캐릭터 승리 후 재시작과 page error 0 확인", "세 무기 실제 입력과 21개 단위 테스트 통과"], "updatedAt": "2026-10-26T04:28:49Z" },
-    { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" }
+    { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" },
+    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "running", "evidence": ["PROJECT_MASTER.md에 목표·구현·검증·실행·재개 프롬프트 작성"], "updatedAt": "2026-10-26T06:16:43Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -50,7 +51,7 @@
   },
   "git": {
     "branch": "main",
-    "commit": "159487c",
+    "commit": "8c9876a",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
     "remoteSync": "local-commit-not-pushed-read-only"
   },
@@ -61,6 +62,7 @@
     "/artifacts/stress-horde.png",
     "/artifacts/preview-menu.png",
     "/artifacts/preview-dashboard.png",
+    "/artifacts/final-dashboard.png",
     "/artifacts/assets-contact.png"
   ],
   "changedFiles": [
@@ -79,12 +81,13 @@
     "playwright.config.ts",
     "package.json",
     "package-lock.json",
-    "project-status.json"
+    "project-status.json",
+    "PROJECT_MASTER.md"
   ],
   "nextActions": [
-    "전체 검증이 통과한 소스를 최종 커밋",
-    "최종 커밋 해시와 원격 권한을 상태 파일에 반영",
-    "최종 게임·대시보드 URL과 미검증 성능 항목 보고"
+    "PROJECT_MASTER.md 검토 후 인수인계 커밋 생성",
+    "요청받은 원격 push를 시도하고 권한·결과를 상태에 반영",
+    "다른 PC에서 clone과 재개 지침을 확인"
   ],
-  "resumeNotes": "전체 13개 브라우저 테스트와 Vitest 21개, clean install, 빌드, 두 캐릭터 완주, 무기, 사망, 비상 탄약, 71기 스트레스와 프로덕션 미리보기가 통과했습니다. 최종 커밋만 남았습니다."
+  "resumeNotes": "MVP와 전체 검증은 완료됐고 PROJECT_MASTER.md도 작성됐습니다. 다음 작업은 마스터 문서 커밋과 원격 push이며 현재 GitHub 권한은 READ입니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
 }
