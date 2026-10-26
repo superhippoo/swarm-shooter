@@ -190,12 +190,15 @@ npx playwright install-deps chromium
 
 ## 7. Git 상태와 커밋 규칙
 
-주요 커밋:
+주요 커밋은 2026-10-26 전체 작성자·커미터를 `superhippoo`로 재작성하면서 해시가 변경됐습니다.
 
-1. `159487c` — `feat: add playable vertical slice and development dashboard`
-2. `8c9876a` — `feat: complete swarm shooter MVP`
+1. `7dcbf55` — `feat: add playable vertical slice and development dashboard`
+2. `69d9e34` — `feat: complete swarm shooter MVP`
+3. `f977d9b` — `docs: add cross-session project handoff guide`
+4. `573a2f3` — `docs: record remote handoff sync`
+5. `cbc3a3b` — `docs: point handoff status at current head`
 
-최신 상태와 추가 커밋은 다음으로 확인하세요.
+이 문서 갱신 및 그 이후의 추가 커밋은 `HEAD`와 Git 로그로 확인하세요.
 
 ```bash
 git status --short --branch
