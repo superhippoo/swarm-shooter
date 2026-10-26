@@ -1,0 +1,56 @@
+import { mkdir } from 'node:fs/promises';
+import { expect, test } from '@playwright/test';
+import { GameDriver, snapshot, waitForScreen } from './game-driver';
+
+test('수직 슬라이스의 이동·사격·재장전·일시정지·재시작이 실제 입력으로 동작한다', async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await mkdir('artifacts', { recursive: true });
+  await page.goto('/');
+  await page.locator('#select-scout').click();
+  await waitForScreen(page, 'playing');
+
+  const initial = await snapshot(page);
+  expect(initial.characterId).toBe('scout');
+  expect(initial.player.health).toBe(initial.player.maxHealth);
+  expect(initial.weapons[0]).toMatchObject({ id: 'rifle', magazine: 30 });
+
+  await page.keyboard.down('d');
+  await page.waitForTimeout(350);
+  await page.keyboard.up('d');
+  expect((await snapshot(page)).player.x).toBeGreaterThan(initial.player.x + 20);
+
+  const driver = new GameDriver(page);
+  await driver.aimAndFire();
+  await page.waitForTimeout(450);
+  const fired = await snapshot(page);
+  expect(fired.weapons[0].magazine).toBeLessThan(30);
+  expect(fired.performance.activeProjectiles).toBeGreaterThan(0);
+  await page.screenshot({ path: 'artifacts/vertical-slice-combat.png', fullPage: true });
+  await driver.stop();
+
+  await page.keyboard.press('r');
+  await expect.poll(async () => (await snapshot(page)).weapons[0].reloading).toBe(true);
+  await expect.poll(async () => (await snapshot(page)).weapons[0].reloading, { timeout: 5000 }).toBe(false);
+  const reloaded = await snapshot(page);
+  expect(reloaded.weapons[0].magazine).toBe(30);
+  expect(reloaded.weapons[0].reserve).toBeLessThan(initial.weapons[0].reserve);
+
+  await page.keyboard.press('Escape');
+  await waitForScreen(page, 'paused');
+  const pausedTick = (await snapshot(page)).tick;
+  await page.waitForTimeout(350);
+  expect((await snapshot(page)).tick).toBe(pausedTick);
+
+  await page.keyboard.press('Escape');
+  await waitForScreen(page, 'playing');
+  await page.keyboard.press('Escape');
+  await waitForScreen(page, 'paused');
+  await page.locator('#pause-restart-button').click();
+  await waitForScreen(page, 'playing');
+  const restarted = await snapshot(page);
+  expect(restarted.runId).toBeGreaterThan(initial.runId);
+  expect(restarted.player.health).toBe(restarted.player.maxHealth);
+  expect(restarted.weapons[0].magazine).toBe(30);
+  expect(pageErrors).toEqual([]);
+});

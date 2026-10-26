@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "project": {
+    "name": "SWARM//ZERO",
+    "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
+  },
+  "currentPhase": "2단계: 필수 MVP와 사격감 통합",
+  "currentTask": "검증된 수직 슬라이스를 커밋하고 무기·적·보급·SVG 확장을 재배정",
+  "updatedAt": "2026-10-26T01:46:05Z",
+  "tasks": [
+    { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
+    { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
+    { "id": "art", "owner": "designer", "role": "디자인", "title": "독창적 SVG 에셋과 UI 방향", "status": "done", "evidence": ["SVG 6개 XML 파싱 통과", "렌더링 접촉 시트에서 오른쪽 방향과 유닛별 실루엣 확인", "artifacts/assets-contact.png"], "updatedAt": "2026-10-26T01:28:59Z" },
+    { "id": "vertical-slice", "owner": "frontend", "role": "프론트엔드", "title": "이동·사격·전투 수직 슬라이스", "status": "done", "evidence": ["Vitest 8/8과 프로덕션 빌드 통과", "실제 WASD·마우스·R·Esc·재시작 Chromium 테스트 통과", "artifacts/vertical-slice-combat.png에서 발사·명중·처치 확인"], "updatedAt": "2026-10-26T01:46:05Z" },
+    { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
+    { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "running", "evidence": [], "updatedAt": "2026-10-26T01:46:05Z" },
+    { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "pending", "evidence": [], "updatedAt": "2026-10-26T01:06:25Z" }
+  ],
+  "verification": [
+    { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
+    { "name": "초기 HTTP 접속", "command": "curl /, /dashboard.html, /api/status", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "게임·대시보드·상태 API가 5173 포트에서 응답" },
+    { "name": "대시보드 브라우저 테스트", "command": "npm run test:e2e -- --grep 대시보드", "status": "passed", "runAt": "2026-10-26T01:16:05Z", "evidence": "Chromium에서 실제 상태 응답과 화면 표시 1건 통과, page error 0건" },
+    { "name": "수직 슬라이스 단위와 빌드", "command": "npm test && npm run build", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "Vitest 8/8, TypeScript strict, Vite 프로덕션 빌드 통과" },
+    { "name": "수직 슬라이스 실제 입력", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "캐릭터 선택, 이동, 사격, 재장전, 일시정지 시계 정지, 재시작 검증" },
+    { "name": "상태 API 읽기 전용", "command": "npm run test:e2e -- --grep '상태 서비스'", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "health 200과 POST /api/status 405 확인" }
+  ],
+  "failures": [
+    { "name": "npm 10.9.3 업데이트", "command": "npm install", "status": "resolved", "runAt": "2026-10-26T01:04:00Z", "evidence": "Arborist edgesOut 오류를 npm 11.6.2로 해결했고 audit 0건 확인" },
+    { "name": "Chromium 시스템 라이브러리와 한글 글꼴", "command": "Playwright Chromium 실행", "status": "resolved", "runAt": "2026-10-26T01:16:05Z", "evidence": "관리자 설치 없이 artifacts의 로컬 libgbm/xkbcommon/wayland/Nanum 글꼴로 실행과 한글 캡처 확인" },
+    { "name": "초기 수직 슬라이스 입력 시나리오", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "resolved", "runAt": "2026-10-26T01:46:05Z", "evidence": "과도한 연사 후 사망해 재장전할 수 없던 테스트를 수 발 사격 후 재장전으로 수정해 통과" }
+  ],
+  "knownIssues": [
+    "현재 GitHub 계정의 원격 저장소 권한은 READ이므로 로컬 커밋만 가능하며 push는 보류합니다.",
+    "수직 슬라이스는 rifle과 swarmer만 있으며 MVP 무기 3종·적 3종·보급·SVG 통합이 남아 있습니다."
+  ],
+  "blockers": [],
+  "servers": {
+    "gameUrl": "http://127.0.0.1:5173/",
+    "dashboardUrl": "http://127.0.0.1:5173/dashboard.html"
+  },
+  "git": {
+    "branch": "main",
+    "commit": null,
+    "remote": "https://github.com/superhippoo/swarm-shooter.git",
+    "remoteSync": "empty-remote-read-only"
+  },
+  "screenshots": [
+    "/artifacts/vertical-slice-combat.png",
+    "/artifacts/assets-contact.png",
+    "/artifacts/dashboard-integrated.png",
+    "/artifacts/initial-dashboard-fonts.png"
+  ],
+  "changedFiles": [
+    "src/game/**",
+    "src/main.ts",
+    "src/style.css",
+    "src/shared/game-types.ts",
+    "public/assets/**",
+    "docs/**",
+    "dashboard.html",
+    "src/dashboard.*",
+    "server/project-status.ts",
+    "scripts/validate-status.mjs",
+    "tests/e2e/**",
+    "playwright.config.ts",
+    "package.json",
+    "package-lock.json",
+    "project-status.json"
+  ],
+  "nextActions": [
+    "검증된 수직 슬라이스를 로컬 Git 첫 커밋으로 저장",
+    "같은 프론트엔드 에이전트를 재개해 무기 3종·적 3종·25초 방어·보급·SVG를 통합",
+    "두 캐릭터 완주와 사격감·성능을 실제 브라우저에서 검증"
+  ],
+  "resumeNotes": "수직 슬라이스는 실제 입력 테스트와 빌드를 통과했습니다. 프론트엔드는 agent-2로 재개하고 docs/game-plan.md, docs/balance.md, docs/art-direction.md를 적용합니다."
+}
