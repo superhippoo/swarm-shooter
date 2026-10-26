@@ -5,8 +5,8 @@
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
   "currentPhase": "후속: 다른 PC 작업 재개 지원",
-  "currentTask": "PROJECT_MASTER.md 작성·검토와 원격 push 준비",
-  "updatedAt": "2026-10-26T06:16:43Z",
+  "currentTask": "superhippoo 계정으로 push 완료. 원격 clone·설치 검증 통과",
+  "updatedAt": "2026-10-26T07:01:01Z",
   "tasks": [
     { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
     { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
@@ -15,7 +15,7 @@
     { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
     { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "done", "evidence": ["scout 83초·HP 243/400·192처치로 실제 완주", "heavy 71초·HP 388/520·171처치로 실제 완주", "두 캐릭터 승리 후 재시작과 page error 0 확인", "세 무기 실제 입력과 21개 단위 테스트 통과"], "updatedAt": "2026-10-26T04:28:49Z" },
     { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" },
-    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "running", "evidence": ["PROJECT_MASTER.md에 목표·구현·검증·실행·재개 프롬프트 작성"], "updatedAt": "2026-10-26T06:16:43Z" }
+    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 2dbb940 완료", "superhippoo 계정으로 origin/main push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과"], "updatedAt": "2026-10-26T07:01:01Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -40,7 +40,6 @@
     { "name": "사망 대기 시간 경쟁", "command": "npm run test:e2e -- --grep '실제 접촉 피해'", "status": "resolved", "runAt": "2026-10-26T05:43:38Z", "evidence": "100초 제한의 마지막 조회 직후 사망이 확인돼 대기를 150초로 늘렸고 실제 사망·재시작이 약 96초로 통과" }
   ],
   "knownIssues": [
-    "현재 GitHub 계정의 원격 저장소 권한은 READ이므로 로컬 커밋만 가능하며 push는 보류합니다.",
     "SwiftShader 소프트웨어 WebGL에서 71기 전투 평균 18.43fps로 60fps에 미달하며, 하드웨어 가속 브라우저 성능은 아직 검증하지 않았습니다.",
     "프로덕션 게임 JS는 Phaser 포함 약 1.26MB로 Vite 청크 크기 경고가 있습니다."
   ],
@@ -51,9 +50,9 @@
   },
   "git": {
     "branch": "main",
-    "commit": "8c9876a",
+    "commit": "2dbb940",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "local-commit-not-pushed-read-only"
+    "remoteSync": "pushed:main"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
@@ -85,9 +84,9 @@
     "PROJECT_MASTER.md"
   ],
   "nextActions": [
-    "PROJECT_MASTER.md 검토 후 인수인계 커밋 생성",
-    "요청받은 원격 push를 시도하고 권한·결과를 상태에 반영",
-    "다른 PC에서 clone과 재개 지침을 확인"
+    "다른 PC에서 git clone 후 PROJECT_MASTER.md만 먼저 읽고 작업 재개",
+    "PROJECT_MASTER.md의 프롬프트를 새 세션에 붙여넣고 승인된 후속 작업 입력",
+    "하드웨어 가속 성능·실제 청감 사격감과 필요한 후속 확장만 별도 승인 후 진행"
   ],
-  "resumeNotes": "MVP와 전체 검증은 완료됐고 PROJECT_MASTER.md도 작성됐습니다. 다음 작업은 마스터 문서 커밋과 원격 push이며 현재 GitHub 권한은 READ입니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
+  "resumeNotes": "MVP와 전체 검증이 완료됐고 PROJECT_MASTER.md, 재개 프롬프트와 커밋 2dbb940이 superhippoo 계정으로 origin/main에 push됐습니다. 원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증이 통과했습니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
 }
