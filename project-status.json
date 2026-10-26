@@ -5,8 +5,8 @@
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
   "currentPhase": "후속: 다른 PC 작업 재개 지원",
-  "currentTask": "전체 커밋 작성자·커미터 재작성 완료. force push 준비",
-  "updatedAt": "2026-10-26T07:15:41Z",
+  "currentTask": "작성자 재작성 기록 force push 완료. 원격 검증 통과",
+  "updatedAt": "2026-10-26T07:17:57Z",
   "tasks": [
     { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
     { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
@@ -15,7 +15,7 @@
     { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
     { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "done", "evidence": ["scout 83초·HP 243/400·192처치로 실제 완주", "heavy 71초·HP 388/520·171처치로 실제 완주", "두 캐릭터 승리 후 재시작과 page error 0 확인", "세 무기 실제 입력과 21개 단위 테스트 통과"], "updatedAt": "2026-10-26T04:28:49Z" },
     { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" },
-    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 f977d9b 완료", "superhippoo 계정으로 origin/main push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과", "전체 커밋 작성자·커미터 superhippoo 재작성 완료"], "updatedAt": "2026-10-26T07:15:41Z" }
+    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 f977d9b 완료", "superhippoo 계정으로 origin/main force push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과", "전체 커밋 작성자·커미터 superhippoo 재작성 및 원격 검증 완료"], "updatedAt": "2026-10-26T07:17:57Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -29,7 +29,8 @@
     { "name": "자연 웨이브 성능", "command": "npm run test:e2e -- --grep '자연 웨이브'", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "69기·발사체 4·입자 14, 객체 상한 유지, SwiftShader 평균 17.96fps와 page error 0" },
     { "name": "프로덕션 미리보기", "command": "npm run preview -- --port 4173", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "실제 메뉴·대시보드·/api/status 접속과 page error 0" },
     { "name": "비상 탄약 실제 지급", "command": "npm run test:e2e -- --grep '비상 소총'", "status": "passed", "runAt": "2026-10-26T05:30:59Z", "evidence": "세 무기 소진 후 1272ms 만에 rifle.reserve 24와 자동 재장전 확인, page error 0" },
-    { "name": "최종 전체 브라우저 검증", "command": "npm run test:e2e", "status": "passed", "runAt": "2026-10-26T05:53:25Z", "evidence": "13/13 통과, 8.9분, heavy 79초와 scout 70초 완주, 자연 웨이브 71기와 평균 18.43fps" }
+    { "name": "최종 전체 브라우저 검증", "command": "npm run test:e2e", "status": "passed", "runAt": "2026-10-26T05:53:25Z", "evidence": "13/13 통과, 8.9분, heavy 79초와 scout 70초 완주, 자연 웨이브 71기와 평균 18.43fps" },
+    { "name": "커밋 작성자 재작성과 force push", "command": "git rebase --root --exec 'git commit --amend --no-edit --reset-author' && git push --force-with-lease origin main", "status": "passed", "runAt": "2026-10-26T07:17:57Z", "evidence": "5개 기준 커밋의 author·committer를 superhippoo로 재작성하고 원격 4fb28b5까지 검증" }
   ],
   "failures": [
     { "name": "npm 10.9.3 업데이트", "command": "npm install", "status": "resolved", "runAt": "2026-10-26T01:04:00Z", "evidence": "Arborist edgesOut 오류를 npm 11.6.2로 해결했고 audit 0건 확인" },
@@ -52,7 +53,7 @@
     "branch": "main",
     "commit": "HEAD",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "local-history-rewrite-pending-force-push"
+    "remoteSync": "force-pushed:main"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
@@ -88,5 +89,5 @@
     "PROJECT_MASTER.md의 프롬프트를 새 세션에 붙여넣고 승인된 후속 작업 입력",
     "하드웨어 가속 성능·실제 청감 사격감과 필요한 후속 확장만 별도 승인 후 진행"
   ],
-  "resumeNotes": "MVP와 전체 검증이 완료됐고 PROJECT_MASTER.md, 재개 프롬프트와 커밋 f977d9b가 superhippoo 계정으로 origin/main에 push됐습니다. 원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증이 통과했습니다. 전체 커밋 작성자·커미터가 superhippoo로 재작성됐고 force push가 필요합니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
+  "resumeNotes": "MVP와 전체 검증이 완료됐고 PROJECT_MASTER.md, 재개 프롬프트와 커밋 f977d9b가 superhippoo 계정으로 origin/main에 force push됐습니다. 원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증이 통과했고 전체 커밋 작성자·커미터가 superhippoo로 재작성·검증됐습니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
 }
