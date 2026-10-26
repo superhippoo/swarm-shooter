@@ -102,7 +102,7 @@ x축 트리거는 각각 최초 1회만 발동하므로 되돌아가도 같은 �
 
 ## 5. 보급과 소프트락 방지
 
-최대 예비 탄약은 `round(WeaponDefinition.reserveAmmo × CharacterDefinition.reserveAmmoMultiplier)`다. 일반 보급 상자는 자동 획득 반경 44px의 1회용이며, 세 무기 예비 탄약을 각각 최대치의 40%(올림)만큼 회복하고 생명력을 20 회복한다. 탄창은 직접 채우지 않고 모든 수치는 최대치로 클램프한다. 회복할 항목이 하나도 없으면 상자를 소모하지 않는다.
+최대 예비 탄약은 `round(WeaponDefinition.reserveAmmo × CharacterDefinition.reserveAmmoMultiplier)`다. 일반 보급 상자는 자동 획득 반경 44px의 1회용이며, 세 무기 예비 탄약을 각각 최대치의 40%(올림)만큼 회복하고 생명력을 45 회복한다. 탄창은 직접 채우지 않고 모든 수치는 최대치로 클램프한다. 회복할 항목이 하나도 없으면 상자를 소모하지 않는다.
 
 | 보급 시점 | 좌표 |
 |---|---|

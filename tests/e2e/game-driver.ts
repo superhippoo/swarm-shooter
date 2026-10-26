@@ -1,7 +1,9 @@
 import { expect, type Page } from '@playwright/test';
-import type { EnemySnapshot, GameScreen, GameSnapshot } from '../../src/shared/game-types';
+import type { EnemySnapshot, GameScreen, GameSnapshot, WeaponId } from '../../src/shared/game-types';
 
 export async function snapshot(page: Page): Promise<GameSnapshot> {
+  const state = await page.evaluate(() => window.swarmDiagnostics?.() as GameSnapshot | undefined);
+  if (state) return state;
   await page.waitForFunction(() => typeof window.swarmDiagnostics === 'function');
   return page.evaluate(() => window.swarmDiagnostics!() as GameSnapshot);
 }
@@ -10,25 +12,40 @@ export async function waitForScreen(page: Page, screen: GameScreen): Promise<voi
   await expect.poll(async () => (await snapshot(page)).screen).toBe(screen);
 }
 
-async function canvasPoint(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
-  const canvas = page.locator('canvas').first();
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error('게임 캔버스의 화면 좌표를 읽을 수 없습니다.');
-  const size = await canvas.evaluate((element: HTMLCanvasElement) => ({
-    width: element.width,
-    height: element.height,
-  }));
-  return {
-    x: box.x + (x / size.width) * box.width,
-    y: box.y + (y / size.height) * box.height,
-  };
+export async function waitForEnemy(page: Page): Promise<void> {
+  await expect.poll(async () => nearestEnemy(await snapshot(page)) !== null).toBe(true);
 }
 
-function nearestEnemy(state: GameSnapshot): EnemySnapshot | null {
+type CanvasMetrics = { x: number; y: number; scaleX: number; scaleY: number };
+const canvasMetrics = new WeakMap<Page, CanvasMetrics>();
+
+async function canvasPoint(page: Page, x: number, y: number): Promise<{ x: number; y: number }> {
+  let metrics = canvasMetrics.get(page);
+  if (!metrics) {
+    const canvas = page.locator('canvas').first();
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('게임 캔버스의 화면 좌표를 읽을 수 없습니다.');
+    const size = await canvas.evaluate((element: HTMLCanvasElement) => ({
+      width: element.width,
+      height: element.height,
+    }));
+    metrics = {
+      x: box.x,
+      y: box.y,
+      scaleX: box.width / size.width,
+      scaleY: box.height / size.height,
+    };
+    canvasMetrics.set(page, metrics);
+  }
+  return { x: metrics.x + x * metrics.scaleX, y: metrics.y + y * metrics.scaleY };
+}
+
+export function nearestEnemy(state: GameSnapshot): EnemySnapshot | null {
   let nearest: EnemySnapshot | null = null;
   let nearestDistance = Number.POSITIVE_INFINITY;
   for (const enemy of state.enemies) {
     if (enemy.health <= 0) continue;
+    if (enemy.screenX < 0 || enemy.screenX > 1280 || enemy.screenY < 0 || enemy.screenY > 720) continue;
     const distance = Math.hypot(enemy.x - state.player.x, enemy.y - state.player.y);
     if (distance < nearestDistance) {
       nearest = enemy;
@@ -41,6 +58,7 @@ function nearestEnemy(state: GameSnapshot): EnemySnapshot | null {
 export class GameDriver {
   private readonly heldKeys = new Set<string>();
   private firing = false;
+  private lastMovementLogAt = 0;
 
   constructor(private readonly page: Page) {}
 
@@ -49,6 +67,20 @@ export class GameDriver {
     this.heldKeys.clear();
     if (this.firing) await this.page.mouse.up();
     this.firing = false;
+  }
+
+  async selectWeapon(id: WeaponId): Promise<void> {
+    const state = await snapshot(this.page);
+    if (state.screen !== 'playing' || state.selectedWeapon === id) return;
+    if (this.firing) await this.page.mouse.up();
+    this.firing = false;
+    const keys: Record<WeaponId, string> = { rifle: '1', shotgun: '2', launcher: '3' };
+    await this.page.keyboard.press(keys[id]);
+    await expect.poll(async () => {
+      const current = await snapshot(this.page);
+      if (current.screen === 'dead') throw new Error('무기 교체 중 플레이어가 사망했습니다.');
+      return current.selectedWeapon;
+    }, { timeout: 3000 }).toBe(id);
   }
 
   async moveToward(x: number, y: number, deadZone = 36): Promise<void> {
@@ -70,10 +102,47 @@ export class GameDriver {
         this.heldKeys.delete(key);
       }
     }
+    if (process.env.SWARM_DEBUG_DRIVER === '1' && Date.now() - this.lastMovementLogAt > 5000) {
+      this.lastMovementLogAt = Date.now();
+      console.log(`DRIVER_MOVE ${JSON.stringify({
+        target: { x, y },
+        player: state.player,
+        phase: state.mission.phase,
+        desired: [...desired],
+        held: [...this.heldKeys],
+      })}`);
+    }
   }
 
-  async aimAndFire(): Promise<boolean> {
+  async fireAtCanvas(x: number, y: number): Promise<boolean> {
     const state = await snapshot(this.page);
+    if (state.screen !== 'playing') {
+      if (this.firing) await this.page.mouse.up();
+      this.firing = false;
+      return false;
+    }
+    const point = await canvasPoint(this.page, x, y);
+    await this.page.mouse.move(point.x, point.y);
+    if (state.selectedWeapon === 'rifle') {
+      if (!this.firing) {
+        await this.page.mouse.down();
+        this.firing = true;
+      }
+      return true;
+    }
+    if (this.firing) await this.page.mouse.up();
+    this.firing = false;
+    await this.page.mouse.click(point.x, point.y);
+    return true;
+  }
+
+  async aimAndHold(): Promise<boolean> {
+    const state = await snapshot(this.page);
+    if (state.screen !== 'playing') {
+      if (this.firing) await this.page.mouse.up();
+      this.firing = false;
+      return false;
+    }
     const enemy = nearestEnemy(state);
     if (!enemy) {
       if (this.firing) await this.page.mouse.up();
@@ -86,6 +155,34 @@ export class GameDriver {
       await this.page.mouse.down();
       this.firing = true;
     }
+    return true;
+  }
+
+  async aimAndFire(): Promise<boolean> {
+    const state = await snapshot(this.page);
+    if (state.screen !== 'playing') {
+      if (this.firing) await this.page.mouse.up();
+      this.firing = false;
+      return false;
+    }
+    const enemy = nearestEnemy(state);
+    if (!enemy) {
+      if (this.firing) await this.page.mouse.up();
+      this.firing = false;
+      return false;
+    }
+    const point = await canvasPoint(this.page, enemy.screenX, enemy.screenY);
+    await this.page.mouse.move(point.x, point.y);
+    if (state.selectedWeapon === 'rifle') {
+      if (!this.firing) {
+        await this.page.mouse.down();
+        this.firing = true;
+      }
+      return true;
+    }
+    if (this.firing) await this.page.mouse.up();
+    this.firing = false;
+    await this.page.mouse.click(point.x, point.y);
     return true;
   }
 }

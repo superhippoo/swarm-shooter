@@ -165,23 +165,38 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
 .icon-button span { margin-left: 8px; color: #658184; font-size: 9px; }
 .icon-button:hover { color: var(--mint); border-color: var(--mint-dim); }
 .combat-notice { position: absolute; top: 135px; left: 50%; transform: translateX(-50%); padding: 10px 20px; color: #e9fff7; border-left: 2px solid var(--mint); background: rgba(6, 16, 19, 0.88); font: 700 12px/1.2 ui-monospace, "Noto Sans KR", monospace; letter-spacing: 0.05em; }
-.hud-bottom { position: absolute; right: 26px; bottom: 22px; left: 26px; display: grid; grid-template-columns: 270px 1fr 270px; align-items: end; gap: 20px; }
-.vitals-panel, .ammo-panel { padding: 13px 15px; border-bottom: 1px solid var(--line); background: linear-gradient(0deg, rgba(6, 14, 18, 0.88), rgba(6, 14, 18, 0.3)); }
+.hud-bottom { position: absolute; right: 26px; bottom: 22px; left: 26px; display: grid; grid-template-columns: 250px 1fr 360px; align-items: end; gap: 20px; }
+.vitals-panel, .ammo-panel { padding: 13px 15px; border-bottom: 1px solid var(--line); background: linear-gradient(0deg, rgba(6, 14, 18, 0.92), rgba(6, 14, 18, 0.5)); }
+.ammo-panel { min-width: 340px; }
 .panel-label { display: flex; justify-content: space-between; align-items: center; color: #718d90; font: 9px/1 ui-monospace, monospace; letter-spacing: 0.08em; }
 .panel-label b { color: #d7e7e6; font-size: 12px; letter-spacing: 0; }
 .health-track { height: 8px; margin: 10px 0 7px; padding: 2px; border: 1px solid #34514e; }
 .health-track i { display: block; width: 100%; height: 100%; background: var(--mint); box-shadow: 0 0 10px rgba(113, 246, 196, 0.35); transition: width 100ms; }
 .health-track i.critical { background: var(--pink); box-shadow: 0 0 10px rgba(243, 70, 120, 0.4); }
-.vitals-panel small { color: #4f716f; font: 8px/1 ui-monospace, monospace; }
+.vitals-panel small { color: #6f898b; font: 9px/1 ui-monospace, monospace; }
 .controls-hint { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 13px; padding-bottom: 4px; color: #72898b; font-size: 9px; }
 .controls-hint kbd { margin-right: 3px; font-size: 8px; }
+.weapon-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; pointer-events: auto; }
+.weapon-slot { display: grid; grid-template-columns: auto 1fr; gap: 4px 6px; align-items: center; padding: 7px; color: #839b9d; text-align: left; cursor: pointer; border: 1px solid #2a3b43; border-radius: 3px; background: #101820; font: 9px/1 ui-monospace, monospace; }
+.weapon-slot span { color: #a3b6b7; }
+.weapon-slot b { grid-column: 1 / -1; color: #dcebea; font-size: 10px; font-weight: 500; }
+.weapon-slot.selected { border-color: var(--mint); background: #15302f; }
+.weapon-slot.selected span, .weapon-slot.selected b { color: var(--mint); }
+.weapon-slot.reloading b { color: var(--amber); }
+.weapon-slot:hover { border-color: #82f5e5; }
 .ammo-readout { display: flex; align-items: baseline; justify-content: flex-end; margin-top: 5px; font-family: ui-monospace, monospace; }
-.ammo-readout strong { color: #f1fbf8; font-size: 38px; line-height: 1; letter-spacing: -0.06em; }
+.ammo-readout strong { color: #f1fbf8; font-size: 34px; line-height: 1; letter-spacing: -0.06em; }
 .ammo-readout span { margin-left: 10px; color: #627f80; font-size: 16px; }
 .ammo-readout b { color: #9bb1b2; font-weight: 500; }
 .reload-label { margin-top: 5px; color: var(--mint); text-align: right; font: 9px/1 ui-monospace, monospace; }
 .reload-track { height: 2px; margin-top: 7px; background: #253a3e; }
 .reload-track i { display: block; height: 100%; background: var(--amber); }
+.setting-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 18px; padding: 13px 15px; color: #dcebea; text-align: left; cursor: pointer; border: 1px solid #2a3b43; border-radius: 4px; background: #101820; }
+.setting-row span { display: flex; flex-direction: column; gap: 5px; }
+.setting-row b { font-size: 12px; }
+.setting-row small { color: #839b9d; font-size: 10px; }
+.setting-row input { width: 38px; height: 20px; margin: 0; cursor: pointer; accent-color: var(--mint); }
+.setting-row i { display: none; }
 
 .modal-overlay { background: rgba(3, 8, 11, 0.78); backdrop-filter: blur(6px); }
 .modal-panel { width: min(420px, 100%); padding: 36px; text-align: center; border: 1px solid #35524f; border-top: 2px solid var(--mint); background: rgba(8, 18, 22, 0.97); box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55); }

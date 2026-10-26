@@ -4,17 +4,17 @@
     "name": "SWARM//ZERO",
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
-  "currentPhase": "2단계: 필수 MVP와 사격감 통합",
-  "currentTask": "검증된 수직 슬라이스를 커밋하고 무기·적·보급·SVG 확장을 재배정",
-  "updatedAt": "2026-10-26T01:46:05Z",
+  "currentPhase": "완료: MVP와 전체 검증",
+  "currentTask": "전체 13개 Chromium 테스트 통과. 최종 커밋 준비",
+  "updatedAt": "2026-10-26T05:53:25Z",
   "tasks": [
     { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
     { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
     { "id": "art", "owner": "designer", "role": "디자인", "title": "독창적 SVG 에셋과 UI 방향", "status": "done", "evidence": ["SVG 6개 XML 파싱 통과", "렌더링 접촉 시트에서 오른쪽 방향과 유닛별 실루엣 확인", "artifacts/assets-contact.png"], "updatedAt": "2026-10-26T01:28:59Z" },
     { "id": "vertical-slice", "owner": "frontend", "role": "프론트엔드", "title": "이동·사격·전투 수직 슬라이스", "status": "done", "evidence": ["Vitest 8/8과 프로덕션 빌드 통과", "실제 WASD·마우스·R·Esc·재시작 Chromium 테스트 통과", "artifacts/vertical-slice-combat.png에서 발사·명중·처치 확인"], "updatedAt": "2026-10-26T01:46:05Z" },
     { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
-    { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "running", "evidence": [], "updatedAt": "2026-10-26T01:46:05Z" },
-    { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "pending", "evidence": [], "updatedAt": "2026-10-26T01:06:25Z" }
+    { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "done", "evidence": ["scout 83초·HP 243/400·192처치로 실제 완주", "heavy 71초·HP 388/520·171처치로 실제 완주", "두 캐릭터 승리 후 재시작과 page error 0 확인", "세 무기 실제 입력과 21개 단위 테스트 통과"], "updatedAt": "2026-10-26T04:28:49Z" },
+    { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -22,16 +22,26 @@
     { "name": "대시보드 브라우저 테스트", "command": "npm run test:e2e -- --grep 대시보드", "status": "passed", "runAt": "2026-10-26T01:16:05Z", "evidence": "Chromium에서 실제 상태 응답과 화면 표시 1건 통과, page error 0건" },
     { "name": "수직 슬라이스 단위와 빌드", "command": "npm test && npm run build", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "Vitest 8/8, TypeScript strict, Vite 프로덕션 빌드 통과" },
     { "name": "수직 슬라이스 실제 입력", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "캐릭터 선택, 이동, 사격, 재장전, 일시정지 시계 정지, 재시작 검증" },
-    { "name": "상태 API 읽기 전용", "command": "npm run test:e2e -- --grep '상태 서비스'", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "health 200과 POST /api/status 405 확인" }
+    { "name": "상태 API 읽기 전용", "command": "npm run test:e2e -- --grep '상태 서비스'", "status": "passed", "runAt": "2026-10-26T01:46:05Z", "evidence": "health 200과 POST /api/status 405 확인" },
+    { "name": "두 캐릭터 실제 완주", "command": "npm run test:e2e -- --grep 'heavy 캐릭터|scout 캐릭터'", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "두 캐릭터 모두 침투·25초 방어·탈출·승리·재시작 성공" },
+    { "name": "clean install과 독립 브라우저 검증", "command": "npm ci && npm run verify && npm run test:e2e", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "독립 복사본에서 설치·21개 단위 테스트·빌드·6개 Chromium 테스트와 취약점 0건" },
+    { "name": "자연 웨이브 성능", "command": "npm run test:e2e -- --grep '자연 웨이브'", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "69기·발사체 4·입자 14, 객체 상한 유지, SwiftShader 평균 17.96fps와 page error 0" },
+    { "name": "프로덕션 미리보기", "command": "npm run preview -- --port 4173", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "실제 메뉴·대시보드·/api/status 접속과 page error 0" },
+    { "name": "비상 탄약 실제 지급", "command": "npm run test:e2e -- --grep '비상 소총'", "status": "passed", "runAt": "2026-10-26T05:30:59Z", "evidence": "세 무기 소진 후 1272ms 만에 rifle.reserve 24와 자동 재장전 확인, page error 0" },
+    { "name": "최종 전체 브라우저 검증", "command": "npm run test:e2e", "status": "passed", "runAt": "2026-10-26T05:53:25Z", "evidence": "13/13 통과, 8.9분, heavy 79초와 scout 70초 완주, 자연 웨이브 71기와 평균 18.43fps" }
   ],
   "failures": [
     { "name": "npm 10.9.3 업데이트", "command": "npm install", "status": "resolved", "runAt": "2026-10-26T01:04:00Z", "evidence": "Arborist edgesOut 오류를 npm 11.6.2로 해결했고 audit 0건 확인" },
     { "name": "Chromium 시스템 라이브러리와 한글 글꼴", "command": "Playwright Chromium 실행", "status": "resolved", "runAt": "2026-10-26T01:16:05Z", "evidence": "관리자 설치 없이 artifacts의 로컬 libgbm/xkbcommon/wayland/Nanum 글꼴로 실행과 한글 캡처 확인" },
-    { "name": "초기 수직 슬라이스 입력 시나리오", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "resolved", "runAt": "2026-10-26T01:46:05Z", "evidence": "과도한 연사 후 사망해 재장전할 수 없던 테스트를 수 발 사격 후 재장전으로 수정해 통과" }
+    { "name": "초기 수직 슬라이스 입력 시나리오", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "resolved", "runAt": "2026-10-26T01:46:05Z", "evidence": "과도한 연사 후 사망해 재장전할 수 없던 테스트를 수 발 사격 후 재장전으로 수정해 통과" },
+    { "name": "Vite 의존성 캐시", "command": "npm ci 이후 전체 E2E", "status": "resolved", "runAt": "2026-10-26T05:30:59Z", "evidence": "504 Outdated Optimize Dep을 Vite --force 재시작으로 해소하고 게임 로딩 테스트 통과" },
+    { "name": "브라우저 입력 경쟁과 경로", "command": "완주·무기·이동 테스트", "status": "resolved", "runAt": "2026-10-26T05:30:59Z", "evidence": "출현 대기·재시작 클릭 경쟁·경유지 통과 판정·입력 캐시를 수정하고 두 캐릭터 완주와 이동 재검증 통과" },
+    { "name": "사망 대기 시간 경쟁", "command": "npm run test:e2e -- --grep '실제 접촉 피해'", "status": "resolved", "runAt": "2026-10-26T05:43:38Z", "evidence": "100초 제한의 마지막 조회 직후 사망이 확인돼 대기를 150초로 늘렸고 실제 사망·재시작이 약 96초로 통과" }
   ],
   "knownIssues": [
     "현재 GitHub 계정의 원격 저장소 권한은 READ이므로 로컬 커밋만 가능하며 push는 보류합니다.",
-    "수직 슬라이스는 rifle과 swarmer만 있으며 MVP 무기 3종·적 3종·보급·SVG 통합이 남아 있습니다."
+    "SwiftShader 소프트웨어 WebGL에서 71기 전투 평균 18.43fps로 60fps에 미달하며, 하드웨어 가속 브라우저 성능은 아직 검증하지 않았습니다.",
+    "프로덕션 게임 JS는 Phaser 포함 약 1.26MB로 Vite 청크 크기 경고가 있습니다."
   ],
   "blockers": [],
   "servers": {
@@ -40,15 +50,18 @@
   },
   "git": {
     "branch": "main",
-    "commit": null,
+    "commit": "159487c",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "empty-remote-read-only"
+    "remoteSync": "local-commit-not-pushed-read-only"
   },
   "screenshots": [
-    "/artifacts/vertical-slice-combat.png",
-    "/artifacts/assets-contact.png",
-    "/artifacts/dashboard-integrated.png",
-    "/artifacts/initial-dashboard-fonts.png"
+    "/artifacts/mission-scout-victory.png",
+    "/artifacts/mission-heavy-victory.png",
+    "/artifacts/mvp-weapons.png",
+    "/artifacts/stress-horde.png",
+    "/artifacts/preview-menu.png",
+    "/artifacts/preview-dashboard.png",
+    "/artifacts/assets-contact.png"
   ],
   "changedFiles": [
     "src/game/**",
@@ -57,6 +70,7 @@
     "src/shared/game-types.ts",
     "public/assets/**",
     "docs/**",
+    "README.md",
     "dashboard.html",
     "src/dashboard.*",
     "server/project-status.ts",
@@ -68,9 +82,9 @@
     "project-status.json"
   ],
   "nextActions": [
-    "검증된 수직 슬라이스를 로컬 Git 첫 커밋으로 저장",
-    "같은 프론트엔드 에이전트를 재개해 무기 3종·적 3종·25초 방어·보급·SVG를 통합",
-    "두 캐릭터 완주와 사격감·성능을 실제 브라우저에서 검증"
+    "전체 검증이 통과한 소스를 최종 커밋",
+    "최종 커밋 해시와 원격 권한을 상태 파일에 반영",
+    "최종 게임·대시보드 URL과 미검증 성능 항목 보고"
   ],
-  "resumeNotes": "수직 슬라이스는 실제 입력 테스트와 빌드를 통과했습니다. 프론트엔드는 agent-2로 재개하고 docs/game-plan.md, docs/balance.md, docs/art-direction.md를 적용합니다."
+  "resumeNotes": "전체 13개 브라우저 테스트와 Vitest 21개, clean install, 빌드, 두 캐릭터 완주, 무기, 사망, 비상 탄약, 71기 스트레스와 프로덕션 미리보기가 통과했습니다. 최종 커밋만 남았습니다."
 }

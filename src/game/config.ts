@@ -2,7 +2,10 @@ import type {
   CharacterDefinition,
   CharacterId,
   EnemyDefinition,
+  EnemyId,
+  MissionPhase,
   WeaponDefinition,
+  WeaponId,
 } from '../shared/game-types';
 
 export const WORLD = {
@@ -14,88 +17,211 @@ export const WORLD = {
 } as const;
 
 export const MISSION = {
-  interactionRadius: 96,
-  extractionRadius: 82,
-  defenseDurationMs: 20_000,
+  interactionRadius: 90,
+  extractionRadius: 90,
+  defenseDurationMs: 25_000,
+  defenseZoneRadius: 300,
 } as const;
 
 export const CHARACTERS: Record<CharacterId, CharacterDefinition> = {
   scout: {
     id: 'scout',
-    name: 'SCOUT',
-    description: '빠른 기동과 짧은 재장전 시간으로 교란에 특화된 척후병',
-    maxHealth: 100,
-    speed: 275,
+    name: '윤하',
+    description: '빠른 재배치와 짧은 재장전으로 거리를 유지하는 척후병',
+    maxHealth: 400,
+    speed: 245,
     reloadMultiplier: 0.85,
     reserveAmmoMultiplier: 1,
   },
   heavy: {
     id: 'heavy',
-    name: 'HEAVY',
-    description: '높은 체구와 추가 탄약을 갖춘 대신 이동이 느린 돌파병',
-    maxHealth: 170,
-    speed: 190,
-    reloadMultiplier: 1.15,
-    reserveAmmoMultiplier: 1.5,
+    name: '브런',
+    description: '느리지만 높은 생명력과 넉넉한 예비 탄약으로 전선을 유지하는 돌파병',
+    maxHealth: 520,
+    speed: 180,
+    reloadMultiplier: 1.1,
+    reserveAmmoMultiplier: 1.25,
   },
 };
 
-export const RIFLE: WeaponDefinition = {
-  id: 'rifle',
-  name: 'VX-7 자동 소총',
-  magazineSize: 30,
-  reserveAmmo: 120,
-  fireIntervalMs: 105,
-  reloadMs: 1450,
-  damage: 34,
-  projectileSpeed: 980,
-  range: 760,
-  pellets: 1,
-  spreadRadians: 0.018,
-  knockback: 155,
-  shake: 0.0014,
-  automatic: true,
+export const WEAPONS: Record<WeaponId, WeaponDefinition> = {
+  rifle: {
+    id: 'rifle',
+    name: 'RS-7 바늘',
+    magazineSize: 30,
+    reserveAmmo: 180,
+    fireIntervalMs: 110,
+    reloadMs: 1400,
+    damage: 24,
+    projectileSpeed: 1150,
+    range: 850,
+    pellets: 1,
+    spreadRadians: 0.035,
+    knockback: 44,
+    shake: 0.001,
+    automatic: true,
+  },
+  shotgun: {
+    id: 'shotgun',
+    name: 'SG-4 파편',
+    magazineSize: 6,
+    reserveAmmo: 36,
+    fireIntervalMs: 760,
+    reloadMs: 1800,
+    damage: 14,
+    projectileSpeed: 950,
+    range: 430,
+    pellets: 8,
+    spreadRadians: 0.24,
+    knockback: 180,
+    shake: 0.0038,
+    automatic: false,
+  },
+  launcher: {
+    id: 'launcher',
+    name: 'GL-2 공명',
+    magazineSize: 3,
+    reserveAmmo: 16,
+    fireIntervalMs: 950,
+    reloadMs: 2200,
+    damage: 105,
+    projectileSpeed: 560,
+    range: 820,
+    pellets: 1,
+    spreadRadians: 0,
+    knockback: 260,
+    shake: 0.006,
+    automatic: false,
+    explosionRadius: 120,
+  },
 };
 
-export const SWARMER: EnemyDefinition = {
-  id: 'swarmer',
-  name: '스워머',
-  maxHealth: 60,
-  speed: 92,
-  contactDamage: 9,
-  radius: 15,
-  score: 100,
+export const WEAPON_ORDER = ['rifle', 'shotgun', 'launcher'] as const satisfies readonly WeaponId[];
+export const RIFLE = WEAPONS.rifle;
+export const SHOTGUN = WEAPONS.shotgun;
+export const LAUNCHER = WEAPONS.launcher;
+
+export const ENEMIES: Record<EnemyId, EnemyDefinition> = {
+  swarmer: {
+    id: 'swarmer',
+    name: '쇄도충',
+    maxHealth: 30,
+    speed: 115,
+    contactDamage: 5,
+    radius: 13,
+    score: 10,
+  },
+  skitter: {
+    id: 'skitter',
+    name: '잔상충',
+    maxHealth: 55,
+    speed: 200,
+    contactDamage: 8,
+    radius: 11,
+    score: 25,
+  },
+  brute: {
+    id: 'brute',
+    name: '철갑충',
+    maxHealth: 330,
+    speed: 70,
+    contactDamage: 16,
+    radius: 29,
+    score: 120,
+  },
 };
 
 export const LIMITS = {
-  enemies: 40,
-  activeEnemies: 34,
-  projectiles: 72,
-  particles: 140,
-  corpses: 24,
+  enemies: 72,
+  projectiles: 192,
+  particles: 384,
+  corpses: 40,
+  supplies: 8,
+  audioVoices: 12,
+  spawnQueue: 96,
 } as const;
 
 export const COMBAT = {
-  initialEnemies: 9,
-  spawnIntervalMs: 1150,
-  defendSpawnIntervalMs: 650,
   enemyContactCooldownMs: 850,
-  playerInvulnerabilityMs: 260,
+  playerInvulnerabilityMs: 1000,
+  spawnWarningMs: 300,
+  spawnEmissionMs: 100,
+  aiIntervalMs: 100,
+  emergencyDelayMs: 1500,
+  emergencyCooldownMs: 6000,
+  emergencyRifleAmmo: 24,
+  supplyPickupRadius: 44,
+  supplyHealth: 45,
+  spatialCellSize: 128,
 } as const;
+
+export type WavePhase = Exclude<MissionPhase, 'complete'>;
+
+export interface WaveDefinition {
+  id: string;
+  phase: WavePhase;
+  at: number;
+  counts: Record<EnemyId, number>;
+}
+
+export const WAVES: WaveDefinition[] = [
+  { id: 'I-0', phase: 'infiltrate', at: 0, counts: { swarmer: 8, skitter: 0, brute: 0 } },
+  { id: 'I-1', phase: 'infiltrate', at: 700, counts: { swarmer: 10, skitter: 2, brute: 0 } },
+  { id: 'I-2', phase: 'infiltrate', at: 1200, counts: { swarmer: 12, skitter: 3, brute: 0 } },
+  { id: 'I-3', phase: 'infiltrate', at: 1650, counts: { swarmer: 12, skitter: 4, brute: 1 } },
+  { id: 'D-0', phase: 'defend', at: 0, counts: { swarmer: 10, skitter: 2, brute: 0 } },
+  { id: 'D-1', phase: 'defend', at: 4000, counts: { swarmer: 12, skitter: 3, brute: 0 } },
+  { id: 'D-2', phase: 'defend', at: 8000, counts: { swarmer: 12, skitter: 4, brute: 1 } },
+  { id: 'D-3', phase: 'defend', at: 13_000, counts: { swarmer: 14, skitter: 4, brute: 1 } },
+  { id: 'D-4', phase: 'defend', at: 18_000, counts: { swarmer: 16, skitter: 5, brute: 1 } },
+  { id: 'D-5', phase: 'defend', at: 22_000, counts: { swarmer: 12, skitter: 4, brute: 1 } },
+  { id: 'X-0', phase: 'extract', at: 0, counts: { swarmer: 8, skitter: 4, brute: 1 } },
+  { id: 'X-1', phase: 'extract', at: 6000, counts: { swarmer: 10, skitter: 2, brute: 0 } },
+  { id: 'X-2', phase: 'extract', at: 12_000, counts: { swarmer: 10, skitter: 3, brute: 0 } },
+  { id: 'X-3', phase: 'extract', at: 18_000, counts: { swarmer: 12, skitter: 3, brute: 1 } },
+];
+
+export type SupplyAvailability = 'start' | 'defend' | 'defendHalf' | 'extract';
+
+export interface SupplyDefinition {
+  x: number;
+  y: number;
+  availability: SupplyAvailability;
+}
+
+export const SUPPLIES: SupplyDefinition[] = [
+  { x: 1050, y: 1080, availability: 'start' },
+  { x: 1810, y: 900, availability: 'defend' },
+  { x: 1990, y: 690, availability: 'defendHalf' },
+  { x: 1710, y: 650, availability: 'extract' },
+  { x: 620, y: 390, availability: 'extract' },
+];
 
 export const TEXTURES = {
   characters: {
-    scout: 'generated-character-scout',
-    heavy: 'generated-character-heavy',
+    scout: 'operative-scout',
+    heavy: 'operative-heavy',
   },
-  swarmer: 'generated-enemy-swarmer',
-  rifleBullet: 'generated-projectile-rifle',
-  bulletTrail: 'generated-projectile-trail',
-  muzzle: 'generated-muzzle-flash',
-  particle: 'generated-hit-particle',
-  corpse: 'generated-death-trace',
-  crosshair: 'generated-crosshair',
-  collider: 'generated-collider',
+  enemies: {
+    swarmer: 'enemy-swarmer',
+    skitter: 'enemy-skitter',
+    brute: 'enemy-brute',
+  },
+  projectiles: {
+    rifle: 'projectile-rifle',
+    shotgun: 'projectile-shotgun',
+    launcher: 'projectile-launcher',
+  },
+  bulletTrail: 'effect-projectile-trail',
+  muzzle: 'effect-muzzle-flash',
+  particle: 'effect-hit-particle',
+  explosion: 'effect-explosion-ring',
+  corpse: 'effect-death-trace',
+  crosshair: 'ui-crosshair',
+  collider: 'collision-marker',
+  supply: 'object-supply',
+  spawnWarning: 'effect-spawn-warning',
+  objectiveArrow: 'ui-objective-arrow',
 } as const;
 
 export interface ObstacleDefinition {
@@ -103,7 +229,7 @@ export interface ObstacleDefinition {
   y: number;
   width: number;
   height: number;
-  kind: 'bed' | 'wall' | 'console' | 'reactor';
+  kind: 'bed' | 'wall' | 'console';
 }
 
 export const OBSTACLES: ObstacleDefinition[] = [
@@ -112,9 +238,8 @@ export const OBSTACLES: ObstacleDefinition[] = [
   { x: 150, y: 1470, width: 150, height: 72, kind: 'bed' },
   { x: 410, y: 1470, width: 150, height: 72, kind: 'bed' },
   { x: 900, y: 1220, width: 290, height: 86, kind: 'console' },
-  { x: 1110, y: 600, width: 460, height: 48, kind: 'wall' },
+  { x: 1300, y: 600, width: 200, height: 48, kind: 'wall' },
   { x: 1590, y: 410, width: 48, height: 350, kind: 'wall' },
-  { x: 1900, y: 800, width: 76, height: 76, kind: 'reactor' },
   { x: 2070, y: 1140, width: 170, height: 76, kind: 'console' },
   { x: 660, y: 320, width: 250, height: 72, kind: 'console' },
 ];
