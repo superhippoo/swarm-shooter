@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080c10" />
+    <meta name="color-scheme" content="dark" />
+    <title>SWARM//ZERO 개발 대시보드</title>
+    <script type="module" crossorigin src="/swarm-shooter/assets/dashboard-DfjbLdhZ.js"></script>
+    <link rel="modulepreload" crossorigin href="/swarm-shooter/assets/modulepreload-polyfill-P2Xu9kJm.js">
+    <link rel="stylesheet" crossorigin href="/swarm-shooter/assets/dashboard-C0rzedj6.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">대시보드 본문으로 이동</a>
+    <div class="console-shell">
+      <header class="command-bar">
+        <a class="brand" href="/dashboard.html" aria-label="SWARM ZERO 대시보드 홈">
+          <span class="brand__sigil" aria-hidden="true">S//Z</span>
+          <span class="brand__copy">
+            <strong>SWARM//ZERO</strong>
+            <span>LOCAL OPERATIONS CONSOLE</span>
+          </span>
+        </a>
+        <div class="command-bar__controls">
+          <div id="connection-indicator" class="connection" data-state="loading" role="status" aria-live="polite">
+            <span class="connection__light" aria-hidden="true"></span>
+            <span id="connection-label">상태 수신 대기</span>
+            <span class="connection__interval">AUTO / 03S</span>
+          </div>
+          <button id="refresh-button" class="refresh-button" type="button">
+            <span class="refresh-button__icon" aria-hidden="true">↻</span>
+            <span id="refresh-label">지금 새로고침</span>
+          </button>
+        </div>
+      </header>
+
+      <div id="sync-error" class="alert alert--error" role="alert" hidden>
+        <span class="alert__code" aria-hidden="true">SYNC ERR</span>
+        <div>
+          <strong>상태 API와 동기화할 수 없습니다</strong>
+          <p id="sync-error-message">네트워크 연결을 확인하세요.</p>
+        </div>
+      </div>
+
+      <main id="main-content">
+        <section class="panel hero" aria-labelledby="project-name">
+          <div class="hero__copy">
+            <p class="eyebrow"><span class="eyebrow__line" aria-hidden="true"></span>PROJECT DIRECTIVE</p>
+            <h1 id="project-name">SWARM//ZERO</h1>
+            <p id="project-goal" class="hero__goal">프로젝트 목표를 수신하는 중입니다.</p>
+            <div class="current-grid">
+              <div class="current-block">
+                <span class="field-label">CURRENT PHASE</span>
+                <p id="current-phase">단계 정보 없음</p>
+              </div>
+              <div class="current-block current-block--task">
+                <span class="field-label">ACTIVE DIRECTIVE</span>
+                <p id="current-task">현재 작업 정보 없음</p>
+              </div>
+            </div>
+          </div>
+          <div class="hero__progress">
+            <div id="progress-ring" class="progress-ring" role="progressbar" aria-label="전체 작업 완료율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div class="progress-ring__core">
+                <strong id="progress-percent">0%</strong>
+                <span>COMPLETE</span>
+              </div>
+            </div>
+            <p class="progress-caption"><strong id="progress-count">0 / 0</strong><span>실제 완료 작업 / 전체 작업</span></p>
+          </div>
+        </section>
+
+        <dl class="telemetry-strip" aria-label="동기화 및 작업 요약">
+          <div>
+            <dt>LAST SUCCESSFUL SYNC</dt>
+            <dd id="last-success">아직 성공 응답 없음</dd>
+          </div>
+          <div>
+            <dt>STATUS FILE UPDATED</dt>
+            <dd id="status-updated">기록 없음</dd>
+          </div>
+          <div>
+            <dt>RUNNING TASKS</dt>
+            <dd id="active-count">0</dd>
+          </div>
+          <div>
+            <dt>ACTIVE BLOCKERS</dt>
+            <dd id="telemetry-blockers">0</dd>
+          </div>
+        </dl>
+
+        <div class="dashboard-grid">
+          <section class="panel panel--12" aria-labelledby="tasks-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">01 / WORKSTREAMS</p>
+                <h2 id="tasks-title">역할별 작업 카드</h2>
+              </div>
+              <span id="task-count" class="count-label">0 TASKS</span>
+            </header>
+            <div id="task-list" class="task-grid" aria-live="polite"></div>
+          </section>
+
+          <section class="panel panel--5" aria-labelledby="next-actions-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">02 / QUEUE</p>
+                <h2 id="next-actions-title">다음 작업</h2>
+              </div>
+              <span id="next-action-count" class="count-label">0개</span>
+            </header>
+            <ol id="next-actions" class="action-list"></ol>
+          </section>
+
+          <section class="panel panel--7" aria-labelledby="verification-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">03 / VERIFICATION</p>
+                <h2 id="verification-title">검증 명령과 결과</h2>
+              </div>
+              <span id="verification-count" class="count-label">0개</span>
+            </header>
+            <div id="verification-list" class="record-list"></div>
+          </section>
+
+          <section class="panel panel--7" aria-labelledby="failures-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">04 / RECOVERY LOG</p>
+                <h2 id="failures-title">실패 후 해결 기록</h2>
+              </div>
+              <span id="failure-count" class="count-label">0개</span>
+            </header>
+            <div id="failure-list" class="record-list"></div>
+          </section>
+
+          <section class="panel panel--5 risk-panel" aria-labelledby="risks-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">05 / RISK REGISTER</p>
+                <h2 id="risks-title">문제와 차단 요인</h2>
+              </div>
+            </header>
+            <div class="risk-group">
+              <h3>KNOWN ISSUES <span id="known-issue-count">0</span></h3>
+              <ul id="known-issues" class="risk-list risk-list--issues"></ul>
+            </div>
+            <div class="risk-group risk-group--blockers">
+              <h3>BLOCKERS <span id="blocker-count">0</span></h3>
+              <ul id="blocker-list" class="risk-list risk-list--blockers"></ul>
+            </div>
+          </section>
+
+          <section class="panel panel--5" aria-labelledby="operations-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">06 / SOURCE &amp; RUNTIME</p>
+                <h2 id="operations-title">Git과 실행 링크</h2>
+              </div>
+            </header>
+            <dl class="git-grid">
+              <div><dt>BRANCH</dt><dd id="git-branch">정보 없음</dd></div>
+              <div><dt>COMMIT</dt><dd id="git-commit">정보 없음</dd></div>
+              <div><dt>REMOTE SYNC</dt><dd id="git-remote-sync">정보 없음</dd></div>
+              <div class="git-grid__remote"><dt>REMOTE</dt><dd id="git-remote">정보 없음</dd></div>
+            </dl>
+            <div class="resource-links">
+              <a id="game-link" class="resource-link" href="/" target="_blank" rel="noopener noreferrer">
+                <span class="resource-link__code">GAME / 5173</span>
+                <strong>게임 실행 화면</strong>
+                <span id="game-url" class="resource-link__url">/</span>
+              </a>
+              <a id="dashboard-link" class="resource-link" href="/dashboard.html" target="_blank" rel="noopener noreferrer">
+                <span class="resource-link__code">CONSOLE / 5173</span>
+                <strong>개발 대시보드</strong>
+                <span id="dashboard-url" class="resource-link__url">/dashboard.html</span>
+              </a>
+            </div>
+          </section>
+
+          <section class="panel panel--7" aria-labelledby="screenshots-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">07 / VISUAL EVIDENCE</p>
+                <h2 id="screenshots-title">스크린샷</h2>
+              </div>
+              <span id="screenshot-count" class="count-label">0개</span>
+            </header>
+            <div id="screenshot-list" class="screenshot-grid"></div>
+          </section>
+
+          <section class="panel panel--7" aria-labelledby="changed-files-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">08 / CHANGE SET</p>
+                <h2 id="changed-files-title">변경 파일</h2>
+              </div>
+              <span id="changed-file-count" class="count-label">0개</span>
+            </header>
+            <ul id="changed-files" class="file-list"></ul>
+          </section>
+
+          <section class="panel panel--5 resume-panel" aria-labelledby="resume-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">09 / HANDOFF</p>
+                <h2 id="resume-title">재개 메모</h2>
+              </div>
+            </header>
+            <p id="resume-notes" class="resume-panel__notes">기록된 재개 메모가 없습니다.</p>
+          </section>
+        </div>
+      </main>
+
+      <footer class="console-footer">
+        <span>STATUS SOURCE / project-status.json</span>
+        <span>READ-ONLY LOCAL TELEMETRY</span>
+      </footer>
+    </div>
+  </body>
+</html>

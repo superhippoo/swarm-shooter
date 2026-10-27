@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>Crosshair</title>
+  <desc>Original teal crosshair with dark contrast outline, open center, and amber aiming dot.</desc>
+  <g fill="none" stroke="#061014" stroke-width="6">
+    <path d="M32 5V15M32 49V59M5 32H15M49 32H59"/>
+    <path d="M23 12H12V23M41 12H52V23M52 41V52H41M23 52H12V41"/>
+  </g>
+  <g fill="none" stroke="#64f4e4" stroke-width="2.5">
+    <path d="M32 5V15M32 49V59M5 32H15M49 32H59"/>
+    <path d="M23 12H12V23M41 12H52V23M52 41V52H41M23 52H12V41"/>
+  </g>
+  <circle cx="32" cy="32" r="3" fill="#f5b942" stroke="#061014" stroke-width="2"/>
+</svg>
