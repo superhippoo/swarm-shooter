@@ -47,6 +47,7 @@ import {
   massScale,
   reloadProgress,
   requestReload,
+  selectAutoAimTarget,
   segmentCircleTime,
   segmentRectangleTime,
   settleReload,
@@ -155,6 +156,10 @@ export class SwarmScene extends Phaser.Scene {
   private readonly audio = new ProceduralAudio();
   private readonly pressedKeys = new Set<string>();
   private readonly aimPoint = new Phaser.Math.Vector2(WORLD.start.x, WORLD.start.y);
+  private readonly touchMove = new Phaser.Math.Vector2();
+  private readonly lastAimDirection = new Phaser.Math.Vector2(1, 0);
+  private touchControlsEnabled = false;
+  private autoAimTargetId: number | null = null;
   private readonly enemyHash = new SpatialHash<EnemySlot>(COMBAT.spatialCellSize);
   private readonly contactCandidates: EnemySlot[] = [];
   private screen: GameScreen = 'menu';
@@ -262,8 +267,10 @@ export class SwarmScene extends Phaser.Scene {
     this.shakeUntil = 0;
     this.shakeIntensity = 0;
     this.pressedKeys.clear();
+    this.resetTouchInput();
     this.firingHeld = false;
     this.triggerPressed = false;
+    this.lastAimDirection.set(1, 0);
     this.player.setTexture(TEXTURES.characters[characterId])
       .setDisplaySize(characterId === 'scout' ? 56 : 70, characterId === 'scout' ? 56 : 70)
       .setPosition(WORLD.start.x, WORLD.start.y).setRotation(0).setAlpha(1).clearTint()
@@ -291,6 +298,7 @@ export class SwarmScene extends Phaser.Scene {
     if (!this.ready) return;
     this.resetPools();
     this.pressedKeys.clear();
+    this.resetTouchInput();
     this.firingHeld = false;
     this.triggerPressed = false;
     this.character = null;
@@ -313,6 +321,7 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.pressedKeys.clear();
+    this.resetTouchInput();
     this.crosshair.setVisible(false);
     this.cameras.main.shakeEffect.reset();
     this.audio.pause();
@@ -328,6 +337,33 @@ export class SwarmScene extends Phaser.Scene {
     this.callbacks.onScreen(this.screen);
   }
 
+  setTouchControlsEnabled(enabled: boolean): void {
+    if (this.touchControlsEnabled === enabled) return;
+    this.touchControlsEnabled = enabled;
+    this.pressedKeys.clear();
+    this.resetTouchInput();
+    this.firingHeld = false;
+    this.triggerPressed = false;
+    if (this.ready && this.character) {
+      this.lastAimDirection.set(Math.cos(this.player.rotation), Math.sin(this.player.rotation));
+      this.updateAim();
+    }
+  }
+
+  setMoveVector(x: number, y: number): void {
+    if (!this.touchControlsEnabled || this.screen !== 'playing' || !Number.isFinite(x) || !Number.isFinite(y)) {
+      this.touchMove.set(0, 0);
+      return;
+    }
+    const length = Math.hypot(x, y);
+    this.touchMove.set(length > 1 ? x / length : x, length > 1 ? y / length : y);
+  }
+
+  private resetTouchInput(): void {
+    this.touchMove.set(0, 0);
+    this.autoAimTargetId = null;
+  }
+
   setKey(code: string, pressed: boolean): void {
     if (pressed && this.screen === 'playing') this.pressedKeys.add(code);
     else this.pressedKeys.delete(code);
@@ -340,6 +376,20 @@ export class SwarmScene extends Phaser.Scene {
     } else if (!firing) {
       this.firingHeld = false;
     }
+  }
+
+  setTouchFiring(firing: boolean): void {
+    if (!firing) {
+      this.firingHeld = false;
+      this.triggerPressed = false;
+      return;
+    }
+    if (!this.touchControlsEnabled || this.screen !== 'playing') return;
+    this.audio.unlock();
+    this.setFiring(true);
+    this.updateAim();
+    this.updateWeapon();
+    this.emitHud();
   }
 
   selectWeapon(id: WeaponId): void {
@@ -398,6 +448,13 @@ export class SwarmScene extends Phaser.Scene {
       characterId: this.character?.id ?? null,
       tick: this.tick,
       runId: this.runId,
+      input: {
+        mode: this.touchControlsEnabled ? 'touch' : 'desktop',
+        moveX: this.round(this.touchMove.x),
+        moveY: this.round(this.touchMove.y),
+        firing: inRun && this.firingHeld,
+        autoAimTargetId: inRun && this.touchControlsEnabled ? this.autoAimTargetId : null,
+      },
       player: {
         x: this.round(this.player?.x ?? WORLD.start.x),
         y: this.round(this.player?.y ?? WORLD.start.y),
@@ -530,15 +587,16 @@ export class SwarmScene extends Phaser.Scene {
   private updatePlayer(): void {
     if (!this.character) return;
     this.updateAim();
-    let horizontal = 0;
-    let vertical = 0;
+    let horizontal = this.touchControlsEnabled ? this.touchMove.x : 0;
+    let vertical = this.touchControlsEnabled ? this.touchMove.y : 0;
     if (this.pressedKeys.has('KeyA') || this.pressedKeys.has('ArrowLeft')) horizontal -= 1;
     if (this.pressedKeys.has('KeyD') || this.pressedKeys.has('ArrowRight')) horizontal += 1;
     if (this.pressedKeys.has('KeyW') || this.pressedKeys.has('ArrowUp')) vertical -= 1;
     if (this.pressedKeys.has('KeyS') || this.pressedKeys.has('ArrowDown')) vertical += 1;
-    const length = Math.hypot(horizontal, vertical) || 1;
+    const length = Math.hypot(horizontal, vertical);
+    const normalizer = length > 1 ? length : 1;
     const speed = this.character.speed * this.lastDeltaSeconds;
-    this.moveCircle(this.player, this.playerRadius, horizontal / length * speed, vertical / length * speed);
+    this.moveCircle(this.player, this.playerRadius, horizontal / normalizer * speed, vertical / normalizer * speed);
     if (this.playerFlashUntil > 0 && this.runTimeMs >= this.playerFlashUntil) {
       this.player.clearTint();
       this.playerFlashUntil = 0;
@@ -546,12 +604,33 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private updateAim(): void {
-    const pointer = this.input.activePointer;
-    this.cameras.main.getWorldPoint(pointer.x, pointer.y, this.aimPoint);
+    if (this.touchControlsEnabled) {
+      const candidates = this.enemies
+        .filter((enemy) => enemy.state === 'active' &&
+          this.isWorldVisible(enemy.sprite.x, enemy.sprite.y, ENEMIES[enemy.type].radius))
+        .map((enemy) => ({ id: enemy.id, x: enemy.sprite.x, y: enemy.sprite.y }));
+      const target = selectAutoAimTarget(this.player, candidates, OBSTACLES);
+      this.autoAimTargetId = target?.id ?? null;
+      if (target) {
+        const dx = target.x - this.player.x;
+        const dy = target.y - this.player.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance > 0.001) this.lastAimDirection.set(dx / distance, dy / distance);
+      }
+      const aimDistance = target ? distanceBetween(this.player, target) : 220;
+      this.aimPoint.set(
+        this.player.x + this.lastAimDirection.x * aimDistance,
+        this.player.y + this.lastAimDirection.y * aimDistance,
+      );
+    } else {
+      this.autoAimTargetId = null;
+      const pointer = this.input.activePointer;
+      this.cameras.main.getWorldPoint(pointer.x, pointer.y, this.aimPoint);
+    }
     this.crosshair.setPosition(this.aimPoint.x, this.aimPoint.y);
-    this.player.setRotation(Phaser.Math.Angle.Between(
-      this.player.x, this.player.y, this.aimPoint.x, this.aimPoint.y,
-    ));
+    this.player.setRotation(this.touchControlsEnabled
+      ? Math.atan2(this.lastAimDirection.y, this.lastAimDirection.x)
+      : Phaser.Math.Angle.Between(this.player.x, this.player.y, this.aimPoint.x, this.aimPoint.y));
   }
 
   private get lastDeltaSeconds(): number {
@@ -1087,6 +1166,7 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.pressedKeys.clear();
+    this.resetTouchInput();
     this.crosshair.setVisible(false);
     this.muzzle.setVisible(false);
     this.objectiveArrow.setVisible(false);
@@ -1407,7 +1487,7 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (pointer.leftButtonDown() && this.screen === 'playing') {
+    if (!this.touchControlsEnabled && pointer.leftButtonDown() && this.screen === 'playing') {
       this.audio.unlock();
       this.setFiring(true);
       this.updateAim();
@@ -1417,7 +1497,7 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private handlePointerUp(): void {
-    this.setFiring(false);
+    if (!this.touchControlsEnabled) this.setFiring(false);
   }
 
   private worldToScreen(worldX: number, worldY: number): { x: number; y: number } {
@@ -1442,6 +1522,7 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.pressedKeys.clear();
+    this.resetTouchInput();
     this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp, this);
     this.input.off(Phaser.Input.Events.GAME_OUT, this.handlePointerUp, this);

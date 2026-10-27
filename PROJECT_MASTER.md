@@ -16,7 +16,7 @@
 
 ### 현재 범위에서 제외
 
-온라인 멀티플레이어, 로그인, 결제, 외부 DB, 모바일 전용 대응, 추가 맵, 캐릭터 육성, 상점은 MVP에서 제외했습니다. 후속 확장은 사용자 승인 후 별도 작업으로 정의합니다.
+온라인 멀티플레이어, 로그인, 결제, 외부 DB, 모바일 전용 앱·세로 방향 전투, 추가 맵, 캐릭터 육성, 상점은 제외합니다. 후속 확장은 사용자 승인 후 별도 작업으로 정의하며 모바일 가로 웹 컨트롤은 승인된 확장으로 추가했습니다.
 
 ## 2. 현재 완성 상태
 
@@ -32,7 +32,8 @@
 - 독창적 SVG와 Web Audio
 - 객체 풀, 공간 해시, 화면 밖 렌더링 제한
 - `project-status.json` 기반 실시간 개발 대시보드
-- 단위 테스트와 실제 키보드·마우스 기반 브라우저 테스트
+- 모바일 가로 컨트롤: 왼쪽 이동 스틱·자동 조준·사격·재장전·무기·일시정지 버튼
+- 단위 테스트와 실제 키보드·마우스·터치 기반 브라우저 테스트
 
 완료된 작업을 다시 구현할 필요는 없습니다. 다음 작업은 기존 코드와 테스트를 유지한 상태에서 추가하거나 수정해야 합니다.
 
@@ -78,6 +79,8 @@
 
 ### 조작
 
+데스크톱:
+
 - `WASD`: 이동
 - 마우스: 조준
 - 마우스 왼쪽 버튼: 사격
@@ -85,6 +88,15 @@
 - `R`: 재장전
 - `Esc`: 일시정지·재개
 - 일시정지의 `#shake-toggle`: 화면 진동 켜기·끄기
+
+모바일 가로 화면:
+
+- 왼쪽 스틱: 이동
+- 자동 조준: 화면에 보이는 활성 적 중 장애물에 가려지지 않은 가장 가까운 적 추적
+- `FIRE`: 소총은 유지 시 연사, 산탄총·발사기는 새 탭마다 한 발
+- `재장전`과 무기 버튼: 재장전·무기 교체
+- `Ⅱ`: 일시정지·재개
+- 세로 전환 시 전투 일시정지와 회전 안내, 가로 복귀 후 재개 버튼으로 계속 진행
 
 ## 4. 기술 스택과 구조
 
@@ -102,28 +114,29 @@
 
 | 경로 | 역할 |
 |---|---|
-| `src/game/SwarmScene.ts` | 게임 장면, 전투, AI, 임무, 보급, 풀, 진단 |
+| `src/game/SwarmScene.ts` | 게임 장면, 전투, AI, 임무, 보급, 풀, 터치 이동·자동 조준, 진단 |
 | `src/game/config.ts` | 캐릭터·무기·적·웨이브·보급·객체 상한 |
-| `src/game/logic.ts` | 탄약·재장전·폭발·임무·충돌 순수 로직 |
-| `src/game/logic.test.ts` | Vitest 21개 |
+| `src/game/logic.ts` | 탄약·재장전·폭발·임무·충돌·스틱·자동 조준 순수 로직 |
+| `src/game/logic.test.ts` | Vitest 24개 |
+| `src/game/touch-controls.ts` | DOM 스틱·사격 버튼의 멀티터치 추적과 입력 해제 |
 | `src/game/spatial.ts` | 128px 공간 해시 |
 | `src/game/audio.ts` | Web Audio 합성음과 12 voice 관리 |
 | `src/game/textures.ts` | SVG preload와 생성 텍스처 fallback |
-| `src/main.ts` | 캐릭터 선택·HUD·입력·결과 UI |
-| `src/style.css` | 게임과 HUD 스타일 |
+| `src/main.ts` | 캐릭터 선택·HUD·입력·결과 UI·화면 방향 |
+| `src/style.css` | 데스크톱·모바일 게임과 HUD 스타일 |
 | `src/shared/game-types.ts` | 공통 ID·상태·진단 타입 |
 | `dashboard.html`, `src/dashboard.*` | 개발 대시보드 |
 | `server/project-status.ts` | Vite 개발·미리보기 상태 API 플러그인 |
 | `scripts/validate-status.mjs` | 상태 파일 유효성 검증 |
 | `project-status.json` | 실제 작업 상태의 단일 원천 |
-| `tests/e2e/**` | 실제 키보드·마우스·성능 테스트 |
+| `tests/e2e/**` | 실제 키보드·마우스·터치·성능 테스트 |
 | `docs/game-plan.md` | 임무·웨이브·보급·완료 기준 |
 | `docs/balance.md` | 실제 수치와 사격 규칙 |
 | `docs/art-direction.md` | 독창적 에셋과 UI 방향 |
 | `docs/architecture.md` | 파일 소유권과 공통 계약 |
 | `README.md` | 실행·조작·검증 방법 |
 
-`window.swarmDiagnostics()`는 읽기 전용 상태 복사본을 반환합니다. 이동·피해·승리 등을 실행하는 치트나 디버그 변경 함수는 없습니다. 테스트는 이 상태를 읽고 실제 키보드·마우스를 조작합니다.
+`window.swarmDiagnostics()`는 읽기 전용 상태 복사본을 반환합니다. 이동·피해·승리 등을 실행하는 치트나 디버그 변경 함수는 없습니다. 테스트는 이 상태를 읽고 실제 키보드·마우스·터치를 조작합니다.
 
 ## 5. 다른 PC에서 실행하기
 
@@ -187,6 +200,19 @@ npx playwright install-deps chromium
 최종 스트레스 측정은 headless Chromium 156, Linux, SwiftShader 소프트웨어 WebGL에서 이뤄졌습니다. 자연 웨이브 71기, 평균 **18.43fps**였습니다. 하드웨어 가속 브라우저의 60fps 여부는 확인하지 못했습니다. 실제 사용자 청감의 사격감과 사운드도 자동 검증으로 판정할 수 없으므로 사용자 플레이 피드백이 필요합니다.
 
 프로덕션 게임 JS는 Phaser 포함 약 1.26MB로 Vite 청크 크기 경고가 있습니다. 기능 오류는 아니며 후속 코드 분리 후보입니다.
+
+## 6-1. 모바일 후속 검증
+
+2026-10-27에 다음을 실제로 실행하고 개별 통과했습니다.
+
+- `npm run verify`: 상태 검증, Vitest **24/24**, TypeScript, Vite 프로덕션 빌드 통과
+- `npm run test:e2e -- mobile-controls.spec.ts`: 데스크톱 입력 유지와 모바일 컨트롤 **6/6** 통과
+- `npm run test:e2e -- mobile-mission.spec.ts`: heavy가 터치만으로 **134.324초·HP 371/520·102처치**로 승리하고 재시작
+- `npm run test:e2e -- tests/e2e/mission.spec.ts`: 데스크톱 heavy **162.893초·HP 292/520**, scout **149.553초·HP 312/400** 완주
+- `npm run test:e2e -- emergency.spec.ts`: 318.596초 만에 세 무기를 소진하고 1.462초 만에 소총 예비 탄약 24와 자동 재장전 확인
+- 공개 Cloudflare 터널에서 모바일 캐릭터 선택, 126.32px 이동, 소총 30→27발 사격, 자동 조준과 page error 0 확인
+
+전체 Chromium 20개 회귀 검증과 최종 상태 갱신은 `project-status.json`을 기준으로 합니다. 실제 모바일 하드웨어 FPS, Safari, 청감 사격감·사운드는 자동 검증하지 않았으므로 실기기 확인이 필요합니다.
 
 ## 7. Git 상태와 커밋 규칙
 

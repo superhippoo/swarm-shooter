@@ -26,8 +26,10 @@ import {
   isWithinRange,
   massScale,
   maxReserve,
+  normalizeStickVector,
   reloadProgress,
   requestReload,
+  selectAutoAimTarget,
   segmentCircleTime,
   segmentRectangleTime,
   settleReload,
@@ -228,5 +230,37 @@ describe('bounded combat candidates', () => {
     hash.insert('brute', 1200, 1200);
     expect(hash.query(0, 0, 127, 127, [])).toEqual(['swarmer']);
     expect(hash.query(128, 128, 1279, 1279, [])).toEqual(['skitter', 'brute']);
+  });
+});
+
+describe('touch movement and automatic aim', () => {
+  it('applies a dead zone and clamps diagonal stick vectors', () => {
+    expect(normalizeStickVector(0, 0, 50)).toEqual({ x: 0, y: 0 });
+    expect(normalizeStickVector(4, 0, 50)).toEqual({ x: 0, y: 0 });
+    expect(normalizeStickVector(100, 0, 0)).toEqual({ x: 0, y: 0 });
+    expect(normalizeStickVector(50, 0, 50).x).toBeCloseTo(1);
+    const diagonal = normalizeStickVector(100, 100, 50);
+    expect(Math.hypot(diagonal.x, diagonal.y)).toBeCloseTo(1);
+    expect(diagonal.x).toBeCloseTo(Math.SQRT1_2);
+    expect(diagonal.y).toBeCloseTo(Math.SQRT1_2);
+  });
+
+  it('preserves proportional speed outside the dead zone', () => {
+    const vector = normalizeStickVector(25, 0, 50, 0.2);
+    expect(vector.x).toBeCloseTo(0.375);
+    expect(vector.y).toBe(0);
+  });
+
+  it('selects the nearest clear target and breaks distance ties by id', () => {
+    expect(selectAutoAimTarget({ x: 0, y: 0 }, [
+      { id: 9, x: 0, y: 40 },
+      { id: 4, x: 40, y: 0 },
+    ], [])?.id).toBe(4);
+    expect(selectAutoAimTarget({ x: 0, y: 0 }, [
+      { id: 1, x: 50, y: 0 },
+      { id: 2, x: 90, y: 90 },
+      { id: 3, x: 100, y: 0 },
+    ], [{ x: 50, y: 0, width: 20, height: 40 }])?.id).toBe(2);
+    expect(selectAutoAimTarget({ x: 0, y: 0 }, [], [])).toBeNull();
   });
 });

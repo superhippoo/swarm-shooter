@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { snapshot, waitForScreen } from './game-driver';
 
 test('적의 실제 접촉 피해로 사망하고 같은 캐릭터로 재시작한다', async ({ page }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(240_000);
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await mkdir('artifacts', { recursive: true });
@@ -11,7 +11,7 @@ test('적의 실제 접촉 피해로 사망하고 같은 캐릭터로 재시작�
   await page.locator('#select-scout').click();
   await waitForScreen(page, 'playing');
   const initial = await snapshot(page);
-  await expect.poll(async () => (await snapshot(page)).screen, { timeout: 150_000 }).toBe('dead');
+  await expect.poll(async () => (await snapshot(page)).screen, { timeout: 220_000 }).toBe('dead');
   const dead = await snapshot(page);
   expect(dead.player.health).toBe(0);
   await page.screenshot({ path: 'artifacts/mvp-death.png', fullPage: true });

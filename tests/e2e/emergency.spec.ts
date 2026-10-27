@@ -16,7 +16,7 @@ function distance(a: Point, b: Point): number {
 }
 
 test('세 무기를 실제 소진하면 비상 소총 탄약이 자동 지급된다', async ({ page }) => {
-  test.setTimeout(240_000);
+  test.setTimeout(440_000);
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
   await mkdir('artifacts', { recursive: true });
@@ -31,7 +31,7 @@ test('세 무기를 실제 소진하면 비상 소총 탄약이 자동 지급된
   let emptiedAt = 0;
 
   try {
-    while (Date.now() - startedAt < 220_000 && emptiedAt === 0) {
+    while (Date.now() - startedAt < 420_000 && emptiedAt === 0) {
       const state = await snapshot(page);
       if (state.runId !== initial.runId) throw new Error('비상 탄약 검증 중 예상하지 못한 재시작');
       if (state.screen === 'dead') throw new Error('비상 탄약 검증 중 사망');

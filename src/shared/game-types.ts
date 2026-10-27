@@ -64,6 +64,13 @@ export interface GameSnapshot {
   characterId: CharacterId | null;
   tick: number;
   runId: number;
+  input: {
+    mode: 'desktop' | 'touch';
+    moveX: number;
+    moveY: number;
+    firing: boolean;
+    autoAimTargetId: number | null;
+  };
   player: {
     x: number;
     y: number;

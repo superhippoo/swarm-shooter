@@ -14,7 +14,7 @@
 
 * { box-sizing: border-box; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { min-width: 720px; }
+body { min-width: 0; }
 button { font: inherit; }
 button, kbd { -webkit-user-select: none; user-select: none; }
 button:focus-visible { outline: 2px solid var(--mint); outline-offset: 4px; }
@@ -236,4 +236,206 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
   .hud-bottom { right: 15px; bottom: 15px; left: 15px; grid-template-columns: 220px 1fr 220px; }
   .controls-hint { display: none; }
   .hud-bottom { grid-template-columns: 1fr 1fr; }
+}
+
+#game-stage { touch-action: none; }
+.touch-menu-controls { display: none; }
+#game-shell[data-input="touch"] .desktop-menu-controls,
+#game-shell[data-input="touch"] .controls-hint,
+#game-shell[data-input="touch"] .weapon-slot kbd,
+#game-shell[data-input="touch"] .reload-label { display: none; }
+#game-shell[data-input="touch"] .touch-menu-controls { display: block; }
+
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.move-pad {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  border: 1px solid rgba(113, 246, 196, 0.5);
+  border-radius: 50%;
+  background: rgba(8, 17, 21, 0.52);
+  box-shadow: inset 0 0 28px rgba(113, 246, 196, 0.08);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.move-pad.is-active { border-color: var(--mint); background: rgba(19, 56, 52, 0.58); }
+.move-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48%;
+  aspect-ratio: 1;
+  pointer-events: none;
+  border: 2px solid rgba(232, 255, 248, 0.7);
+  border-radius: 50%;
+  background: rgba(46, 142, 120, 0.78);
+  box-shadow: 0 0 20px rgba(113, 246, 196, 0.18);
+  transform: translate(-50%, -50%);
+}
+.stick-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: rgba(184, 220, 210, 0.4);
+  font: 9px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em;
+  transform: translate(-50%, -50%);
+}
+.fire-button, .touch-action-button {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: pointer;
+  border-radius: 50%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.fire-button {
+  color: #fff0f4;
+  border: 2px solid rgba(255, 155, 178, 0.8);
+  background: rgba(163, 38, 80, 0.76);
+  box-shadow: 0 0 26px rgba(243, 70, 120, 0.16);
+}
+.fire-button strong { font: 800 18px/1 ui-monospace, monospace; letter-spacing: 0.04em; }
+.fire-button span, .touch-action-button span { font-size: 10px; }
+.fire-button.is-active { color: #071510; border-color: #d4ffec; background: rgba(113, 246, 196, 0.92); transform: scale(0.94); }
+.touch-action-button {
+  color: var(--amber);
+  border: 1px solid rgba(255, 199, 102, 0.65);
+  background: rgba(31, 32, 26, 0.82);
+}
+.touch-action-button strong { font: 700 24px/1 ui-monospace, monospace; }
+.touch-action-button:active { background: rgba(91, 70, 31, 0.9); }
+
+.orientation-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  color: #e8f1f2;
+  text-align: center;
+  background: rgba(4, 10, 13, 0.97);
+}
+.orientation-panel { max-width: 320px; }
+.orientation-icon { display: block; color: var(--mint); font: 48px/1 ui-monospace, monospace; }
+.orientation-panel h2 { margin: 16px 0 10px; font-size: 26px; }
+.orientation-panel p { margin: 0; color: #9db2b5; font-size: 14px; line-height: 1.7; }
+
+@media (pointer: coarse) and (orientation: landscape) {
+  .hud {
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 14px) 10px calc(env(safe-area-inset-left, 0px) + 14px);
+  }
+  .hud-top { display: block; }
+  .hud-brand { display: none; }
+  .objective-panel { width: min(340px, 42vw); margin: 0 auto; padding: 8px 12px; }
+  .objective-heading { gap: 8px; margin-bottom: 5px; font-size: 8px; }
+  .objective-panel strong { font-size: 11px; }
+  .objective-track { margin-top: 6px; }
+  .icon-button {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    right: calc(env(safe-area-inset-right, 0px) + 14px);
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    padding: 0;
+    touch-action: manipulation;
+  }
+  .icon-button span { display: none; }
+  .combat-notice { top: 78px; max-width: 62vw; padding: 7px 12px; font-size: 10px; }
+  .hud-bottom { display: contents; }
+  .vitals-panel {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
+    left: calc(env(safe-area-inset-left, 0px) + 14px);
+    width: 142px;
+    padding: 8px 10px;
+  }
+  .vitals-panel .panel-label > span, .vitals-panel small { display: none; }
+  .vitals-panel .panel-label { justify-content: flex-end; }
+  .health-track { height: 6px; margin: 6px 0 0; }
+  .ammo-panel {
+    position: absolute;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 50%;
+    width: min(250px, 34vw);
+    min-width: 0;
+    padding: 7px 8px;
+    transform: translateX(-50%);
+  }
+  .ammo-panel > .panel-label { justify-content: center; }
+  #current-weapon-name { display: none; }
+  .weapon-slots { gap: 4px; margin-top: 4px; }
+  .weapon-slot {
+    display: flex;
+    min-width: 0;
+    min-height: 48px;
+    padding: 5px 3px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    touch-action: manipulation;
+  }
+  .weapon-slot span, .weapon-slot b { font-size: 9px; }
+  .ammo-readout { position: absolute; right: 0; bottom: calc(100% + 5px); margin: 0; }
+  .ammo-readout strong { font-size: 24px; }
+  .ammo-readout span { font-size: 12px; }
+  .reload-track { margin-top: 5px; }
+
+  .move-pad {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    left: calc(env(safe-area-inset-left, 0px) + 18px);
+    width: clamp(104px, 32vh, 128px);
+    height: clamp(104px, 32vh, 128px);
+  }
+  .fire-button {
+    right: calc(env(safe-area-inset-right, 0px) + 22px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+    width: clamp(72px, 21vh, 88px);
+    height: clamp(72px, 21vh, 88px);
+  }
+  .touch-action-button {
+    right: calc(env(safe-area-inset-right, 0px) + 30px);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 120px);
+    width: 60px;
+    height: 60px;
+  }
+
+  .overlay { padding: 12px max(12px, env(safe-area-inset-right, 0px)) 12px max(12px, env(safe-area-inset-left, 0px)); }
+  .menu-content { width: min(780px, 100%); }
+  .menu-kicker, .menu-subtitle, .mission-route { display: none; }
+  h1 { margin: 0 0 8px; font-size: 34px; }
+  .character-grid { gap: 12px; }
+  .character-card { min-height: 206px; padding: 12px 14px 10px; gap: 6px; }
+  .card-index { font-size: 8px; }
+  .card-heading strong { font-size: 24px; }
+  .operative-mark { width: 34px; height: 34px; font-size: 18px; }
+  .card-description { min-height: 0; font-size: 10px; line-height: 1.4; }
+  .stat-row { font-size: 9px; }
+  .stat-row b { font-size: 10px; }
+  .card-loadout { display: none; }
+  .deploy-label { margin: auto -14px -10px; padding: 10px 14px; font-size: 10px; }
+  .menu-controls { margin: 8px 0 4px; font-size: 10px; }
+  .boot-status { font-size: 8px; }
+  .modal-panel { width: min(400px, 100%); max-height: calc(100vh - 24px); padding: 18px; overflow: auto; }
+  .modal-panel h2 { margin-block: 9px 6px; font-size: 24px; }
+  .modal-panel p { margin-bottom: 14px; }
+  .setting-row { margin-bottom: 12px; padding: 10px 12px; }
+  .primary-button { padding: 12px 14px; }
 }

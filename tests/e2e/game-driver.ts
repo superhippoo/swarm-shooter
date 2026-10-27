@@ -55,7 +55,16 @@ export function nearestEnemy(state: GameSnapshot): EnemySnapshot | null {
   return nearest;
 }
 
-export class GameDriver {
+export interface CombatDriver {
+  readonly usesTouch: boolean;
+  stop(): Promise<void>;
+  selectWeapon(id: WeaponId): Promise<void>;
+  moveToward(x: number, y: number, deadZone?: number): Promise<void>;
+  aimAndFire(): Promise<boolean>;
+}
+
+export class GameDriver implements CombatDriver {
+  readonly usesTouch = false;
   private readonly heldKeys = new Set<string>();
   private firing = false;
   private lastMovementLogAt = 0;

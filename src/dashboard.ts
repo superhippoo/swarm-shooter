@@ -410,14 +410,24 @@ async function refresh(): Promise<void> {
   const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
   try {
-    const response = await fetch('/api/status', {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-
-    const payload: unknown = await response.json();
+    let payload: unknown;
+    try {
+      const response = await fetch('/api/status', {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
+      payload = await response.json();
+    } catch (apiError) {
+      const staticResponse = await fetch(`${import.meta.env.BASE_URL}project-status.json`, {
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+      });
+      if (!staticResponse.ok) throw apiError;
+      payload = await staticResponse.json();
+    }
     if (!isObject(payload)) throw new Error('상태 API 응답이 JSON 객체가 아닙니다.');
 
     renderStatus(payload);

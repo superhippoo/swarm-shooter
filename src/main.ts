@@ -3,6 +3,7 @@ import './style.css';
 import type { CharacterId, GameScreen, WeaponId } from './shared/game-types';
 import { CHARACTERS, WEAPONS, WEAPON_ORDER } from './game/config';
 import { SwarmScene, type HudData } from './game/SwarmScene';
+import { TouchControls } from './game/touch-controls';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('게임 루트를 찾을 수 없습니다.');
@@ -68,6 +69,27 @@ app.innerHTML = `
       </div>
     </section>
 
+    <section id="touch-controls" class="touch-controls" aria-label="모바일 게임 조작" hidden>
+      <div id="move-pad" class="move-pad" role="group" aria-label="이동 스틱">
+        <span class="stick-label" aria-hidden="true">MOVE</span>
+        <i id="move-knob" class="move-knob" aria-hidden="true"></i>
+      </div>
+      <button id="reload-button" class="touch-action-button" type="button" aria-label="재장전">
+        <strong aria-hidden="true">↻</strong><span>재장전</span>
+      </button>
+      <button id="fire-button" class="fire-button" type="button" aria-label="사격">
+        <strong>FIRE</strong><span>사격</span>
+      </button>
+    </section>
+
+    <section id="orientation-screen" class="orientation-screen" role="dialog" aria-modal="true" aria-labelledby="orientation-title" hidden>
+      <div class="orientation-panel">
+        <span class="orientation-icon" aria-hidden="true">↻</span>
+        <h2 id="orientation-title">가로로 회전하세요</h2>
+        <p>모바일 전투는 가로 화면에 맞춰져 있습니다.<br />기기를 가로로 돌린 뒤 작전을 시작하세요.</p>
+      </div>
+    </section>
+
     <section id="menu-screen" class="overlay menu-screen">
       <div class="menu-content">
         <div class="menu-kicker"><span></span> 검은 이슬 // BLACK DEW <span></span></div>
@@ -75,7 +97,8 @@ app.innerHTML = `
         <p class="menu-subtitle">노을 정화소의 중계기를 깨우고, 신호를 방어하고, 북서 승강기로 탈출하세요.</p>
         <div class="mission-route" aria-label="작전 단계"><span><b>01</b> 침투</span><i></i><span><b>02</b> 25초 방어</span><i></i><span><b>03</b> 탈출</span></div>
         <div class="character-grid">${characterCard('scout')}${characterCard('heavy')}</div>
-        <p class="menu-controls"><kbd>WASD</kbd> 이동 <span>·</span> 마우스 조준/사격 <span>·</span> <kbd>1/2/3</kbd> 또는 휠 무기 교체 <span>·</span> <kbd>R</kbd> 재장전 <span>·</span> <kbd>ESC</kbd> 일시정지</p>
+        <p class="menu-controls desktop-menu-controls"><kbd>WASD</kbd> 이동 <span>·</span> 마우스 조준/사격 <span>·</span> <kbd>1/2/3</kbd> 또는 휠 무기 교체 <span>·</span> <kbd>R</kbd> 재장전 <span>·</span> <kbd>ESC</kbd> 일시정지</p>
+        <p class="menu-controls touch-menu-controls">왼쪽 스틱 이동 <span>·</span> 가까운 적 자동 조준 <span>·</span> FIRE 사격 <span>·</span> 버튼 재장전·무기 교체</p>
         <small class="boot-status" id="boot-status">전술 인터페이스와 SVG 에셋 초기화 중…</small>
       </div>
     </section>
@@ -133,6 +156,10 @@ const resultKills = byId<HTMLElement>('result-kills');
 const combatNotice = byId<HTMLElement>('combat-notice');
 const characterButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-character]'));
 const weaponButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-weapon]'));
+const touchControlsLayer = byId<HTMLElement>('touch-controls');
+const orientationScreen = byId<HTMLElement>('orientation-screen');
+const touchQuery = window.matchMedia('(pointer: coarse)');
+const portraitQuery = window.matchMedia('(orientation: portrait)');
 let currentScreen: GameScreen = 'menu';
 let latestKills = 0;
 
@@ -153,6 +180,7 @@ function updateScreen(screen: GameScreen): void {
       : '스웜이 작전 구역을 장악했습니다. 재배치하여 다시 시도하세요.';
     resultKills.textContent = String(latestKills);
   }
+  syncTouchState();
 }
 
 function updateHud(data: HudData): void {
@@ -205,6 +233,13 @@ const scene = new SwarmScene({
 });
 const diagnostics: NonNullable<Window['swarmDiagnostics']> = () => scene.getSnapshot();
 window.swarmDiagnostics = diagnostics;
+const touchControls = new TouchControls({
+  movePad: byId<HTMLElement>('move-pad'),
+  moveKnob: byId<HTMLElement>('move-knob'),
+  fireButton: byId<HTMLButtonElement>('fire-button'),
+  onMove: (x, y) => scene.setMoveVector(x, y),
+  onFire: (firing) => scene.setTouchFiring(firing),
+});
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: stage,
@@ -238,6 +273,23 @@ byId<HTMLButtonElement>('menu-button').addEventListener('click', () => scene.ret
 byId<HTMLInputElement>('shake-toggle').addEventListener('change', (event) => {
   scene.setShakeEnabled((event.currentTarget as HTMLInputElement).checked);
 }, { signal: uiEvents.signal });
+byId<HTMLButtonElement>('reload-button').addEventListener('click', () => scene.reloadWeapon(), { signal: uiEvents.signal });
+
+function syncTouchState(): void {
+  const touch = touchQuery.matches;
+  const portrait = touch && portraitQuery.matches;
+  const controlsEnabled = touch && currentScreen === 'playing' && !portrait;
+  shell.dataset.input = touch ? 'touch' : 'desktop';
+  touchControlsLayer.hidden = !controlsEnabled;
+  orientationScreen.hidden = !portrait;
+  touchControls.setEnabled(controlsEnabled);
+  scene.setTouchControlsEnabled(touch);
+  if (portrait && currentScreen === 'playing') scene.pauseRun();
+}
+
+touchQuery.addEventListener('change', syncTouchState);
+portraitQuery.addEventListener('change', syncTouchState);
+syncTouchState();
 
 const controlledKeys = new Set(['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'Digit1', 'Digit2', 'Digit3', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']);
 const weaponKeys: Record<string, WeaponId> = { Digit1: 'rifle', Digit2: 'shotgun', Digit3: 'launcher' };
@@ -266,8 +318,11 @@ const onKeyUp = (event: KeyboardEvent): void => {
   if (controlledKeys.has(event.code) && currentScreen === 'playing') event.preventDefault();
   scene.setKey(event.code, false);
 };
-const onPointerUp = (): void => scene.setFiring(false);
+const onPointerUp = (event: PointerEvent): void => {
+  if (event.pointerType === 'mouse') scene.setFiring(false);
+};
 const onBlur = (): void => {
+  touchControls.reset();
   scene.setFiring(false);
   scene.pauseRun();
 };
@@ -295,7 +350,10 @@ function destroy(): void {
   if (destroyed) return;
   destroyed = true;
   observer.disconnect();
+  touchControls.dispose();
   uiEvents.abort();
+  touchQuery.removeEventListener('change', syncTouchState);
+  portraitQuery.removeEventListener('change', syncTouchState);
   window.removeEventListener('keydown', onKeyDown);
   window.removeEventListener('keyup', onKeyUp);
   window.removeEventListener('pointerup', onPointerUp);

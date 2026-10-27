@@ -4,9 +4,9 @@
     "name": "SWARM//ZERO",
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
-  "currentPhase": "후속: 다른 PC 작업 재개 지원",
-  "currentTask": "작성자 재작성 기록 force push 완료. 원격 검증 통과",
-  "updatedAt": "2026-10-26T07:17:57Z",
+  "currentPhase": "후속: 모바일 가로 컨트롤",
+  "currentTask": "모바일 입력 구현·개별 검증 완료. 전체 회귀 검증 중",
+  "updatedAt": "2026-10-27T12:10:46Z",
   "tasks": [
     { "id": "scaffold", "owner": "main", "role": "통합", "title": "스캐폴드와 공통 계약", "status": "done", "evidence": ["npm run build 통과", "npm audit 취약점 0건", "Playwright Chromium 1248 설치", "실제 Chromium 대시보드 E2E 1건 통과"], "updatedAt": "2026-10-26T01:16:05Z" },
     { "id": "planning", "owner": "planner", "role": "기획", "title": "임무·무기·적·밸런스 기획", "status": "done", "evidence": ["공통 ID·필드·좌표와 3단계 완료 조건 확인", "캐릭터별 예비 탄약·재장전 계산 검토", "방어 웨이브 합계 102기와 비상 보급 규칙 확인"], "updatedAt": "2026-10-26T01:37:08Z" },
@@ -15,7 +15,8 @@
     { "id": "dashboard", "owner": "backend", "role": "백엔드/도구", "title": "상태 API와 실시간 대시보드", "status": "done", "evidence": ["상태 파일 검증과 GET /api/health 통과", "전체 npm run build 통과", "대시보드·에셋 Chromium E2E 2건 통과", "1440px/390px 화면 가로 overflow 0, page error 0"], "updatedAt": "2026-10-26T01:34:25Z" },
     { "id": "mvp", "owner": "main", "role": "통합", "title": "완결형 MVP와 사격감 통합", "status": "done", "evidence": ["scout 83초·HP 243/400·192처치로 실제 완주", "heavy 71초·HP 388/520·171처치로 실제 완주", "두 캐릭터 승리 후 재시작과 page error 0 확인", "세 무기 실제 입력과 21개 단위 테스트 통과"], "updatedAt": "2026-10-26T04:28:49Z" },
     { "id": "verification", "owner": "main", "role": "검증", "title": "빌드·테스트·완주·성능 검증", "status": "done", "evidence": ["전체 13개 Chromium 테스트 13/13 통과", "Vitest 21/21·TypeScript·프로덕션 빌드·clean install·미리보기 통과", "자연 웨이브 71기·객체 상한·비상 탄약·두 캐릭터 완주 확인", "SwiftShader 평균 18.43fps와 하드웨어 가속 미검증 기록"], "updatedAt": "2026-10-26T05:53:25Z" },
-    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 f977d9b 완료", "superhippoo 계정으로 origin/main force push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과", "전체 커밋 작성자·커미터 superhippoo 재작성 및 원격 검증 완료"], "updatedAt": "2026-10-26T07:17:57Z" }
+    { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 f977d9b 완료", "superhippoo 계정으로 origin/main force push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과", "전체 커밋 작성자·커미터 superhippoo 재작성 및 원격 검증 완료"], "updatedAt": "2026-10-26T07:17:57Z" },
+    { "id": "mobile-controls", "owner": "main", "role": "프론트엔드/검증", "title": "모바일 가로 컨트롤과 자동 조준", "status": "running", "evidence": ["Vitest 24/24와 TypeScript·프로덕션 빌드 통과", "모바일 컨트롤 Chromium E2E 6/6 통과", "heavy 터치 완주 134324ms·HP 371/520·102처치·재시작 성공", "데스크톱 heavy 162893ms·HP 292/520와 scout 149553ms·HP 312/400 완주 통과", "비상 탄약 318596ms 소진 후 1462ms 만에 rifle.reserve 24 및 자동 재장전 확인"], "updatedAt": "2026-10-27T12:10:46Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -30,7 +31,15 @@
     { "name": "프로덕션 미리보기", "command": "npm run preview -- --port 4173", "status": "passed", "runAt": "2026-10-26T04:58:10Z", "evidence": "실제 메뉴·대시보드·/api/status 접속과 page error 0" },
     { "name": "비상 탄약 실제 지급", "command": "npm run test:e2e -- --grep '비상 소총'", "status": "passed", "runAt": "2026-10-26T05:30:59Z", "evidence": "세 무기 소진 후 1272ms 만에 rifle.reserve 24와 자동 재장전 확인, page error 0" },
     { "name": "최종 전체 브라우저 검증", "command": "npm run test:e2e", "status": "passed", "runAt": "2026-10-26T05:53:25Z", "evidence": "13/13 통과, 8.9분, heavy 79초와 scout 70초 완주, 자연 웨이브 71기와 평균 18.43fps" },
-    { "name": "커밋 작성자 재작성과 force push", "command": "git rebase --root --exec 'git commit --amend --no-edit --reset-author' && git push --force-with-lease origin main", "status": "passed", "runAt": "2026-10-26T07:17:57Z", "evidence": "5개 기준 커밋의 author·committer를 superhippoo로 재작성하고 원격 4fb28b5까지 검증" }
+    { "name": "커밋 작성자 재작성과 force push", "command": "git rebase --root --exec 'git commit --amend --no-edit --reset-author' && git push --force-with-lease origin main", "status": "passed", "runAt": "2026-10-26T07:17:57Z", "evidence": "5개 기준 커밋의 author·committer를 superhippoo로 재작성하고 원격 4fb28b5까지 검증" },
+    { "name": "모바일 표준 검증", "command": "npm run verify", "status": "passed", "runAt": "2026-10-27T12:16:54Z", "evidence": "상태 검증, Vitest 24/24, TypeScript, Vite 프로덕션 빌드 통과" },
+    { "name": "모바일 컨트롤 실제 터치", "command": "npm run test:e2e -- mobile-controls.spec.ts", "status": "passed", "runAt": "2026-10-27T11:26:36Z", "evidence": "데스크톱 유지와 모바일 멀티터치·자동 조준·반자동·재장전·취소·회전·overflow 테스트 6/6 통과" },
+    { "name": "모바일 heavy 실제 완주", "command": "npm run test:e2e -- mobile-mission.spec.ts", "status": "passed", "runAt": "2026-10-27T11:53:58Z", "evidence": "터치만으로 134324ms·HP 371/520·102처치로 침투·방어·탈출·승리·재시작, page error 0" },
+    { "name": "데스크톱 두 캐릭터 완주 회귀", "command": "npm run test:e2e -- tests/e2e/mission.spec.ts", "status": "passed", "runAt": "2026-10-27T12:00:16Z", "evidence": "heavy 162893ms·HP 292/520, scout 149553ms·HP 312/400, 두 캐릭터 승리·재시작" },
+    { "name": "저사양 비상 탄약 재검증", "command": "npm run test:e2e -- emergency.spec.ts", "status": "passed", "runAt": "2026-10-27T12:08:46Z", "evidence": "318596ms 소진 후 1462ms 만에 rifle.reserve 24와 자동 재장전, page error 0" },
+    { "name": "공개 모바일 실제 입력", "command": "Cloudflare URL Playwright mobile touch", "status": "passed", "runAt": "2026-10-27T12:14:53Z", "evidence": "공개 게임·대시보드·API 200, 126.32px 이동, 소총 30→27발, 자동 조준과 입력 해제, page error 0" },
+    { "name": "GitHub Pages 프로덕션 빌드", "command": "npm run build:pages", "status": "passed", "runAt": "2026-10-27T12:19:15Z", "evidence": "TypeScript와 /swarm-shooter/ base 다중 페이지 빌드 통과" },
+    { "name": "배포 경로 프로덕션 미리보기", "command": "npm run preview -- --port 4173 --base=/swarm-shooter/", "status": "passed", "runAt": "2026-10-27T12:27:35Z", "evidence": "대체 포트 4174에서 /swarm-shooter/ 게임·대시보드와 /api/status HTTP 200" }
   ],
   "failures": [
     { "name": "npm 10.9.3 업데이트", "command": "npm install", "status": "resolved", "runAt": "2026-10-26T01:04:00Z", "evidence": "Arborist edgesOut 오류를 npm 11.6.2로 해결했고 audit 0건 확인" },
@@ -38,26 +47,38 @@
     { "name": "초기 수직 슬라이스 입력 시나리오", "command": "npm run test:e2e -- --grep '수직 슬라이스'", "status": "resolved", "runAt": "2026-10-26T01:46:05Z", "evidence": "과도한 연사 후 사망해 재장전할 수 없던 테스트를 수 발 사격 후 재장전으로 수정해 통과" },
     { "name": "Vite 의존성 캐시", "command": "npm ci 이후 전체 E2E", "status": "resolved", "runAt": "2026-10-26T05:30:59Z", "evidence": "504 Outdated Optimize Dep을 Vite --force 재시작으로 해소하고 게임 로딩 테스트 통과" },
     { "name": "브라우저 입력 경쟁과 경로", "command": "완주·무기·이동 테스트", "status": "resolved", "runAt": "2026-10-26T05:30:59Z", "evidence": "출현 대기·재시작 클릭 경쟁·경유지 통과 판정·입력 캐시를 수정하고 두 캐릭터 완주와 이동 재검증 통과" },
-    { "name": "사망 대기 시간 경쟁", "command": "npm run test:e2e -- --grep '실제 접촉 피해'", "status": "resolved", "runAt": "2026-10-26T05:43:38Z", "evidence": "100초 제한의 마지막 조회 직후 사망이 확인돼 대기를 150초로 늘렸고 실제 사망·재시작이 약 96초로 통과" }
+    { "name": "사망 대기 시간 경쟁", "command": "npm run test:e2e -- --grep '실제 접촉 피해'", "status": "resolved", "runAt": "2026-10-26T05:43:38Z", "evidence": "100초 제한의 마지막 조회 직후 사망이 확인돼 대기를 150초로 늘렸고 실제 사망·재시작이 약 96초로 통과" },
+    { "name": "Windows Chromium 설치", "command": "npm run browser:install", "status": "resolved", "runAt": "2026-10-27T12:27:35Z", "evidence": "실행 파일 부족과 Windows npm의 Unix 환경 변수 문법 오류를 export PLAYWRIGHT_BROWSERS_PATH=0 후 npx playwright install chromium으로 해소" },
+    { "name": "모바일 완주 드라이버 경로와 입력 지연", "command": "npm run test:e2e -- mobile-mission.spec.ts", "status": "resolved", "runAt": "2026-10-27T11:53:58Z", "evidence": "초기 시도의 벽 주변 정체와 시간 초과를 자동 조준 대상 기준 회피·소총 중심 터치 시나리오로 수정해 134324ms 완주" },
+    { "name": "Git Bash 미리보기 base 경로 변환", "command": "npm run preview -- --base=/swarm-shooter/", "status": "resolved", "runAt": "2026-10-27T12:27:35Z", "evidence": "/swarm-shooter/가 Windows 경로로 변환돼 MSYS_NO_PATHCONV=1을 적용하고 대체 포트 4174의 게임·대시보드·API 200 확인" },
+    { "name": "전체 회귀 1차 저사양 시간 제한", "command": "npm run test:e2e", "status": "failed", "runAt": "2026-10-27T12:27:35Z", "evidence": "사망 HP 15, 비상 발사기 예비 1, 데스크톱 완주 시간 초과를 확인하고 대기 시간을 조정해 전체 재검증 중" }
   ],
   "knownIssues": [
     "SwiftShader 소프트웨어 WebGL에서 71기 전투 평균 18.43fps로 60fps에 미달하며, 하드웨어 가속 브라우저 성능은 아직 검증하지 않았습니다.",
+    "Windows headless Chromium의 완주 최소 FPS는 9.4~9.8이며 실제 모바일 하드웨어 FPS, Safari, 청감 사격감·사운드는 별도 실기기 확인이 필요합니다.",
     "프로덕션 게임 JS는 Phaser 포함 약 1.26MB로 Vite 청크 크기 경고가 있습니다."
   ],
   "blockers": [],
   "servers": {
     "gameUrl": "http://127.0.0.1:5173/",
-    "dashboardUrl": "http://127.0.0.1:5173/dashboard.html"
+    "dashboardUrl": "http://127.0.0.1:5173/dashboard.html",
+    "publicGameUrl": "https://stops-efficiency-anymore-light.trycloudflare.com/",
+    "publicDashboardUrl": "https://stops-efficiency-anymore-light.trycloudflare.com/dashboard.html"
   },
   "git": {
     "branch": "main",
     "commit": "HEAD",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "force-pushed:main"
+    "remoteSync": "local-changes:not-pushed"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
     "/artifacts/mission-heavy-victory.png",
+    "/artifacts/mission-touch-heavy-victory.png",
+    "/artifacts/mobile-controls-combat.png",
+    "/artifacts/mobile-controls-740.png",
+    "/artifacts/mobile-portrait-guide.png",
+    "/artifacts/mobile-public.png",
     "/artifacts/mvp-weapons.png",
     "/artifacts/stress-horde.png",
     "/artifacts/preview-menu.png",
@@ -66,6 +87,9 @@
     "/artifacts/assets-contact.png"
   ],
   "changedFiles": [
+    "index.html",
+    "kimi-rc.sh",
+    "kimi-rc.cmd",
     "src/game/**",
     "src/main.ts",
     "src/style.css",
@@ -81,13 +105,14 @@
     "playwright.config.ts",
     "package.json",
     "package-lock.json",
+    "vite.config.ts",
     "project-status.json",
     "PROJECT_MASTER.md"
   ],
   "nextActions": [
-    "다른 PC에서 git clone 후 PROJECT_MASTER.md만 먼저 읽고 작업 재개",
-    "PROJECT_MASTER.md의 프롬프트를 새 세션에 붙여넣고 승인된 후속 작업 입력",
-    "하드웨어 가속 성능·실제 청감 사격감과 필요한 후속 확장만 별도 승인 후 진행"
+    "전체 Chromium 20개와 npm run verify, build:pages, 프로덕션 미리보기 결과를 상태에 기록",
+    "공개 터널의 모바일 빌드로 실기기 가로 회전·멀티터치·사격감·소리 확인",
+    "검증 완료 후 GitHub Pages 영구 배포는 사용자 push 승인 시 진행"
   ],
-  "resumeNotes": "MVP와 전체 검증이 완료됐고 PROJECT_MASTER.md, 재개 프롬프트와 커밋 f977d9b가 superhippoo 계정으로 origin/main에 force push됐습니다. 원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증이 통과했고 전체 커밋 작성자·커미터가 superhippoo로 재작성·검증됐습니다. SwiftShader 평균 18.43fps와 하드웨어 가속·청감 검증은 미완료입니다."
+  "resumeNotes": "모바일 가로 이동 스틱·자동 조준·사격 버튼을 추가했고 Vitest 24개, 모바일 컨트롤 6개, 모바일 heavy 완주와 데스크톱 두 캐릭터 완주를 개별 검증했습니다. 전체 회귀 검증을 실행 중이며 실제 모바일 하드웨어 성능·Safari·청감은 미검증입니다. 기존 배포용 package.json, src/dashboard.ts, vite.config.ts 변경은 보존했습니다."
 }

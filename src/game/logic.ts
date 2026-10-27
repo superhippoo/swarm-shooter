@@ -373,6 +373,60 @@ export function segmentRectangleTime(
   return minimum >= 0 && minimum <= 1 ? minimum : null;
 }
 
+export function normalizeStickVector(
+  deltaX: number,
+  deltaY: number,
+  radius: number,
+  deadZone = 0.16,
+): Point {
+  if (radius <= 0) return { x: 0, y: 0 };
+  const distance = Math.hypot(deltaX, deltaY);
+  const normalizedDistance = Math.min(1, distance / radius);
+  const zone = Math.min(0.95, Math.max(0, deadZone));
+  if (distance === 0 || normalizedDistance <= zone) return { x: 0, y: 0 };
+  const magnitude = (normalizedDistance - zone) / (1 - zone);
+  return {
+    x: deltaX / distance * magnitude,
+    y: deltaY / distance * magnitude,
+  };
+}
+
+export interface AutoAimCandidate extends Point {
+  id: number;
+}
+
+export interface AutoAimObstacle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export function selectAutoAimTarget<T extends AutoAimCandidate>(
+  player: Point,
+  candidates: readonly T[],
+  obstacles: readonly AutoAimObstacle[],
+): T | null {
+  let selected: T | null = null;
+  let selectedDistance = Number.POSITIVE_INFINITY;
+  const ordered = [...candidates].sort((a, b) => a.id - b.id);
+  for (const candidate of ordered) {
+    const distance = distanceBetween(player, candidate);
+    if (distance >= selectedDistance) continue;
+    const blocked = obstacles.some((obstacle) => segmentRectangleTime(
+      player.x, player.y, candidate.x, candidate.y,
+      obstacle.x - obstacle.width / 2,
+      obstacle.y - obstacle.height / 2,
+      obstacle.x + obstacle.width / 2,
+      obstacle.y + obstacle.height / 2,
+    ) !== null);
+    if (blocked) continue;
+    selected = candidate;
+    selectedDistance = distance;
+  }
+  return selected;
+}
+
 function travelProgress(player: Point, objective: Point, startDistance: number): number {
   if (startDistance <= 0) return 0;
   return clamp01(1 - distanceBetween(player, objective) / startDistance);
