@@ -87,6 +87,17 @@
         </dl>
 
         <div class="dashboard-grid">
+          <section class="panel panel--12" aria-labelledby="request-history-title">
+            <header class="panel__header">
+              <div>
+                <p class="section-code">USER REQUESTS</p>
+                <h2 id="request-history-title">요청한 작업 기록</h2>
+              </div>
+              <span id="request-history-count" class="count-label">0개</span>
+            </header>
+            <div id="request-history-list" class="request-history-list" aria-live="polite"></div>
+          </section>
+
           <section class="panel panel--12" aria-labelledby="tasks-title">
             <header class="panel__header">
               <div>

@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { writeJsonArtifact } from './artifacts';
 import { expect, test } from '@playwright/test';
 import type { WeaponId } from '../../src/shared/game-types';
 import { GameDriver, snapshot, waitForScreen } from './game-driver';
@@ -19,7 +19,6 @@ test('세 무기를 실제 소진하면 비상 소총 탄약이 자동 지급된
   test.setTimeout(440_000);
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  await mkdir('artifacts', { recursive: true });
   await page.goto('/');
   await page.locator('#select-scout').click();
   await waitForScreen(page, 'playing');
@@ -77,7 +76,7 @@ test('세 무기를 실제 소진하면 비상 소총 탄약이 자동 지급된
       rifle: recovered.weapons.find((weapon) => weapon.id === 'rifle'),
       pageErrors,
     };
-    await writeFile('artifacts/emergency-ammo.json', JSON.stringify(result, null, 2));
+    await writeJsonArtifact('emergency-ammo.json', result);
     console.log(`EMERGENCY_RESULT ${JSON.stringify(result)}`);
     expect(recovered.selectedWeapon).toBe('rifle');
     expect(pageErrors).toEqual([]);

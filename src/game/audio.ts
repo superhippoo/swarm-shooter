@@ -49,7 +49,7 @@ export class ProceduralAudio {
   }
 
   playShot(id: WeaponId): void {
-    const duration = id === 'rifle' ? 0.065 : id === 'shotgun' ? 0.15 : 0.09;
+    const duration = id === 'shotgun' ? 0.15 : id === 'rail' ? 0.18 : id === 'flame' ? 0.07 : 0.09;
     const voice = this.beginVoice(duration, 2);
     if (!voice) return;
     const pitch = 1 + (Math.random() - 0.5) * 0.06;
@@ -59,6 +59,17 @@ export class ProceduralAudio {
     } else if (id === 'shotgun') {
       this.tone(voice, 135 * pitch, 52 * pitch, 0.15, 0.2, 'triangle');
       this.noise(voice, 0.15, 850, 0.19, 'lowpass');
+    } else if (id === 'arc') {
+      this.tone(voice, 1180 * pitch, 260 * pitch, 0.09, 0.1, 'sawtooth');
+      this.noise(voice, 0.07, 3200, 0.08, 'highpass');
+    } else if (id === 'rail') {
+      this.tone(voice, 92 * pitch, 920 * pitch, 0.18, 0.16, 'sawtooth');
+      this.noise(voice, 0.12, 1800, 0.11, 'bandpass');
+    } else if (id === 'flame') {
+      this.noise(voice, 0.07, 740, 0.075, 'lowpass');
+      this.tone(voice, 120 * pitch, 82 * pitch, 0.07, 0.035, 'triangle');
+    } else if (id === 'mines') {
+      this.tone(voice, 310 * pitch, 150 * pitch, 0.09, 0.09, 'square');
     } else {
       this.tone(voice, 105 * pitch, 43 * pitch, 0.09, 0.18, 'sine');
       this.noise(voice, 0.09, 420, 0.12, 'bandpass');
@@ -107,6 +118,31 @@ export class ProceduralAudio {
     if (!voice) return;
     this.tone(voice, 330, 440, 0.12, 0.065, 'sine');
     this.tone(voice, 440, 660, 0.13, 0.065, 'sine', 0.1);
+  }
+
+  playStageStart(): void {
+    const voice = this.beginVoice(0.22, 3);
+    if (!voice) return;
+    this.tone(voice, 220, 440, 0.18, 0.055, 'triangle');
+  }
+
+  playStageClear(): void {
+    const voice = this.beginVoice(0.38, 4);
+    if (!voice) return;
+    this.tone(voice, 330, 660, 0.16, 0.07, 'sine');
+    this.tone(voice, 495, 990, 0.18, 0.06, 'sine', 0.16);
+  }
+
+  playUnlock(): void {
+    const voice = this.beginVoice(0.3, 4);
+    if (!voice) return;
+    this.tone(voice, 520, 1040, 0.24, 0.06, 'triangle');
+  }
+
+  playMultiKill(tier: number): void {
+    const voice = this.beginVoice(0.16, 3);
+    if (!voice) return;
+    this.tone(voice, 420 + tier * 18, 760 + tier * 22, 0.14, 0.045, 'square');
   }
 
   close(): void {

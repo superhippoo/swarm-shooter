@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "build:pages": "tsc --noEmit && vite build --base=/swarm-shooter/",
+    "art:generate": "node scripts/generate-art.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "vitest run",
     "test:e2e": "node tests/e2e/run.mjs",

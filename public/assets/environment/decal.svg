@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Worn directional deck markings</title>
+
+  <g fill="#8d9c8f" opacity=".18">
+    <path d="M17 45H36V35L61 64 36 93V83H17ZM76 45H95V35L120 64 95 93V83H76ZM135 45H154V35L179 64 154 93V83H135Z"/>
+  </g>
+  <path d="M16 108H180M194 108H239" stroke="#7e928c" stroke-width="3" opacity=".16"/>
+  <path d="M40 24H75M96 24H119M168 101H193" stroke="#101a21" stroke-width="5" opacity=".8"/>
+
+</svg>

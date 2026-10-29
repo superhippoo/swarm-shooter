@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>ARC-5 chain projector with forked emitter</title>
+
+  <g stroke="#071216" stroke-width="3">
+    <path d="M8 26H26V19H38V24H74L84 20H96V44H84L74 40H47L43 55H30L33 40H8Z" fill="#223c46"/>
+    <path d="M39 26H82V38H39Z" fill="#49656e"/>
+    <path d="M45 27H76" stroke="#a3b6b7" stroke-width="2"/>
+    <path d="M82 24 102 20 112 10H124V21L114 30 88 33Z" fill="#375760"/>
+    <path d="M82 40 102 44 112 54H124V43L114 34 88 31Z" fill="#375760"/>
+    <path d="M105 20 114 13H121M105 44 114 51H121" fill="none" stroke="#82f5e5" stroke-width="3"/>
+    <path d="M17 27H31V37H17Z" fill="#152d36"/>
+    <path d="M48 39H62L58 49H48Z" fill="#182e37"/>
+  </g>
+  <g fill="#39e6d0" stroke="#10252d" stroke-width="2">
+    <path d="M48 23H55V41H48ZM59 23H66V41H59ZM70 23H77V41H70Z"/>
+  </g>
+  <path d="M51 27V36M62 27V36M73 27V36" stroke="#d7fff7" stroke-width="2"/>
+  <path d="M120 25 125 29M120 39 125 35" stroke="#f2fff9" stroke-width="3"/>
+  <circle cx="40" cy="32" r="2.2" fill="#0a1419"/><circle cx="39.5" cy="31.4" r="1" fill="#668088"/><circle cx="87" cy="32" r="2.2" fill="#0a1419"/><circle cx="86.5" cy="31.4" r="1" fill="#668088"/>
+
+</svg>

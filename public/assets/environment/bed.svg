@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="112" viewBox="0 0 220 112" stroke-linecap="round" stroke-linejoin="round">
+  <title>Medical restraint bed with frame and mattress</title>
+
+  <ellipse cx="113" cy="91" rx="97" ry="13" fill="#03090d" opacity=".55"/>
+  <g stroke="#071216" stroke-width="3">
+    <path d="M26 75V96H37V78M181 76V96H192V74" fill="#243b43"/>
+    <path d="M18 26 31 16H201L210 26V81L196 91H29L18 81Z" fill="#1b2b32"/>
+    <path d="M18 26H210V69L196 79H29L18 70Z" fill="#4a6269"/>
+    <path d="M25 29H203V64L192 72H32L25 65Z" fill="#243c43"/>
+    <path d="M39 25H193V65H39Z" fill="#789497"/>
+    <path d="M43 28H190V38H43Z" fill="#a0b8b5" stroke="none"/>
+    <path d="M84 27H193V64H84Z" fill="#526e75"/>
+    <path d="M91 29H190V38H91Z" fill="#69878a" stroke="none"/>
+    <path d="M92 42H189M92 58H189" stroke="#3a525a" stroke-width="2"/>
+    <path d="M39 31 49 25H76L82 33V57L73 63H42Z" fill="#b0c4bd"/>
+    <path d="M45 31 51 28H72L76 33" fill="none" stroke="#d3ded2" stroke-width="2"/>
+    <path d="M111 26H120V65H111ZM161 26H170V65H161Z" fill="#26363e"/>
+    <path d="M112 42H119M162 42H169" stroke="#d6a647" stroke-width="3"/>
+    <path d="M17 22H27V82H17ZM201 23H211V81H201Z" fill="#668088"/>
+    <path d="M20 26H24V65M204 28V63" stroke="#a0b8b5" stroke-width="2"/>
+    <path d="M25 85H201" stroke="#15252c" stroke-width="5"/>
+  </g>
+  <path d="M185 80H196V86H185Z" fill="#39e6d0" opacity=".6"/>
+  <circle cx="28" cy="75" r="2.2" fill="#0a1419"/><circle cx="27.5" cy="74.4" r="1" fill="#668088"/><circle cx="201" cy="75" r="2.2" fill="#0a1419"/><circle cx="200.5" cy="74.4" r="1" fill="#668088"/><circle cx="28" cy="32" r="2.2" fill="#0a1419"/><circle cx="27.5" cy="31.4" r="1" fill="#668088"/><circle cx="201" cy="32" r="2.2" fill="#0a1419"/><circle cx="200.5" cy="31.4" r="1" fill="#668088"/>
+
+</svg>

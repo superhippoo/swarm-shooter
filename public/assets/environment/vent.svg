@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Recessed ventilation turbine</title>
+
+  <ellipse cx="64" cy="72" rx="52" ry="48" fill="#060e13" opacity=".55"/>
+  <path d="M16 21 30 10H101L115 24V101L101 114H28L14 101Z" fill="#293e46" stroke="#071216" stroke-width="4"/>
+  <path d="M24 26 34 19H95L105 29V96L95 105H33L23 96Z" fill="#101e25" stroke="#526970" stroke-width="2"/>
+  <circle cx="64" cy="63" r="35" fill="#071217" stroke="#3a5159" stroke-width="3"/>
+  <g fill="#263d45" stroke="#0b171d" stroke-width="2">
+    <path d="M64 59C48 49 44 35 53 31 66 29 72 43 68 59Z"/>
+    <path d="M68 63C78 47 92 44 96 53 97 66 84 71 68 67Z"/>
+    <path d="M64 67C80 77 84 91 75 95 62 97 56 84 60 68Z"/>
+    <path d="M60 63C50 79 36 82 32 73 31 60 44 55 60 59Z"/>
+  </g>
+  <circle cx="64" cy="63" r="8" fill="#4d646b" stroke="#101e24" stroke-width="3"/>
+  <path d="M61 58 67 56" stroke="#92a5a5" stroke-width="2"/>
+  <circle cx="27" cy="27" r="2.2" fill="#0a1419"/><circle cx="26.5" cy="26.4" r="1" fill="#668088"/><circle cx="101" cy="27" r="2.2" fill="#0a1419"/><circle cx="100.5" cy="26.4" r="1" fill="#668088"/><circle cx="27" cy="101" r="2.2" fill="#0a1419"/><circle cx="26.5" cy="100.4" r="1" fill="#668088"/><circle cx="101" cy="101" r="2.2" fill="#0a1419"/><circle cx="100.5" cy="100.4" r="1" fill="#668088"/>
+
+</svg>

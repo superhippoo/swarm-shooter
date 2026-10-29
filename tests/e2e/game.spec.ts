@@ -9,5 +9,6 @@ test('게임이 초기 메뉴와 읽기 전용 진단 상태를 제공한다', a
   expect(state.screen).toBe('menu');
   expect(state.characterId).toBeNull();
   expect(state.mission.phase).toBeNull();
+  expect(state.campaign).toBeNull();
   expect(pageErrors).toEqual([]);
 });

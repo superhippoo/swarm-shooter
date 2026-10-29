@@ -1,11 +1,10 @@
-import { mkdir } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { capturePage } from './artifacts';
 import { GameDriver, snapshot, waitForScreen } from './game-driver';
 
-test('수직 슬라이스의 이동·사격·재장전·일시정지·재시작이 실제 입력으로 동작한다', async ({ page }) => {
+test('이동·사격·재장전·일시정지·현재 단계 재시작이 실제 입력으로 동작한다', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  await mkdir('artifacts', { recursive: true });
   await page.goto('/');
   await page.locator('#select-scout').click();
   await waitForScreen(page, 'playing');
@@ -26,7 +25,7 @@ test('수직 슬라이스의 이동·사격·재장전·일시정지·재시작�
   const fired = await snapshot(page);
   expect(fired.weapons[0].magazine).toBeLessThan(30);
   expect(fired.performance.activeProjectiles).toBeGreaterThan(0);
-  await page.screenshot({ path: 'artifacts/vertical-slice-combat.png', fullPage: true });
+  await capturePage(page, 'vertical-slice-combat.png');
   await driver.stop();
 
   await page.keyboard.press('r');
@@ -38,19 +37,30 @@ test('수직 슬라이스의 이동·사격·재장전·일시정지·재시작�
 
   await page.keyboard.press('Escape');
   await waitForScreen(page, 'paused');
-  const pausedTick = (await snapshot(page)).tick;
+  const paused = await snapshot(page);
   await page.waitForTimeout(350);
-  expect((await snapshot(page)).tick).toBe(pausedTick);
+  const stillPaused = await snapshot(page);
+  expect(stillPaused.tick).toBe(paused.tick);
+  expect(stillPaused.campaign?.stageElapsedMs).toBe(paused.campaign?.stageElapsedMs);
+  expect(stillPaused.campaign?.campaignElapsedMs).toBe(paused.campaign?.campaignElapsedMs);
 
   await page.keyboard.press('Escape');
   await waitForScreen(page, 'playing');
   await page.keyboard.press('Escape');
   await waitForScreen(page, 'paused');
   await page.locator('#pause-restart-button').click();
-  await waitForScreen(page, 'playing');
+  await waitForScreen(page, 'stageIntro');
   const restarted = await snapshot(page);
   expect(restarted.runId).toBeGreaterThan(initial.runId);
   expect(restarted.player.health).toBe(restarted.player.maxHealth);
   expect(restarted.weapons[0].magazine).toBe(30);
+  expect(restarted.campaign).toMatchObject({
+    stageIndex: initial.campaign?.stageIndex,
+    stageId: initial.campaign?.stageId,
+    stageKills: 0,
+    campaignKills: initial.campaign?.campaignKills,
+    unlockedWeapons: initial.campaign?.unlockedWeapons,
+  });
+  await waitForScreen(page, 'playing');
   expect(pageErrors).toEqual([]);
 });

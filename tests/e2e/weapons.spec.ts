@@ -1,11 +1,10 @@
-import { mkdir } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { capturePage } from './artifacts';
 import { GameDriver, snapshot, waitForEnemy, waitForScreen } from './game-driver';
 
-test('세 무기가 실제 입력에서 자동·산탄·반자동 폭발 무기로 다르게 동작한다', async ({ page }) => {
+test('세 기본 무기가 실제 입력에서 자동·산탄·반자동 폭발 무기로 다르게 동작한다', async ({ page }) => {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  await mkdir('artifacts', { recursive: true });
   await page.goto('/');
   await page.locator('#select-heavy').click();
   await waitForScreen(page, 'playing');
@@ -47,7 +46,7 @@ test('세 무기가 실제 입력에서 자동·산탄·반자동 폭발 무기�
     launcher.enemies.some((enemy) => enemy.health < (beforeLauncher.enemies.find((before) => before.id === enemy.id)?.health ?? 0));
   expect(launcherWorked).toBe(true);
   await page.waitForTimeout(400);
-  await page.screenshot({ path: 'artifacts/mvp-weapons.png', fullPage: true });
+  await capturePage(page, 'mvp-weapons.png');
   await page.waitForTimeout(900);
   await driver.stop();
   expect((await snapshot(page)).weapons.find((weapon) => weapon.id === 'launcher')!.magazine).toBe(2);

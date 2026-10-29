@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>Flame Projector with fuel tank and broad nozzle</title>
+
+  <g stroke="#071216" stroke-width="3">
+    <path d="M7 27H25V20H36V24H59L70 19H83V45H70L59 40H47L43 55H30L33 40H7Z" fill="#303e43"/>
+    <path d="M39 19 48 13H65L73 21V43L65 49H48L39 42Z" fill="#6f653b"/>
+    <path d="M45 20 50 17H62L67 22V41L62 45H50L45 40Z" fill="#a9652d"/>
+    <path d="M50 19V43M59 17V45" stroke="#e9ac45" stroke-width="2"/>
+    <path d="M71 24H86V40H71Z" fill="#536971"/>
+    <path d="M80 22 95 13H115L125 22V42L115 51H95L80 42Z" fill="#52656a"/>
+    <path d="M88 24 99 18H113L119 23H96Z" fill="#9aa9a5" stroke="none"/>
+    <path d="M115 18H125V46H115L120 37V27Z" fill="#15272e"/>
+    <path d="M17 28H31V37H17Z" fill="#4d6268"/>
+  </g>
+  <path d="M120 24H126V40H120Z" fill="#090f13" stroke="#071216" stroke-width="2"/>
+  <path d="M99 27H108V37H99Z" fill="#f5b942" stroke="#513f22" stroke-width="2"/>
+  <path d="M102 29H106V35H102Z" fill="#fff3c4"/>
+  <circle cx="76" cy="32" r="2.2" fill="#0a1419"/><circle cx="75.5" cy="31.4" r="1" fill="#668088"/><circle cx="94" cy="32" r="2.2" fill="#0a1419"/><circle cx="93.5" cy="31.4" r="1" fill="#668088"/>
+
+</svg>

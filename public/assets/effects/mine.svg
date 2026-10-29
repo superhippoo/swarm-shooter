@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>MX-8 armed octagonal pressure mine</title>
+
+  <ellipse cx="32" cy="38" rx="28" ry="21" fill="#02090d" opacity=".55"/>
+  <path d="M11 21 22 12H42L53 21 59 32 53 43 42 52H22L11 43 5 32Z" fill="#263b42" stroke="#071216" stroke-width="4"/>
+  <path d="M17 23 25 17H39L47 23 52 32 47 41 39 47H25L17 41 12 32Z" fill="#52656a" stroke="#14262d" stroke-width="2"/>
+  <path d="M23 24H41L46 32 41 40H23L18 32Z" fill="#172c34" stroke="#071216" stroke-width="2"/>
+  <path d="M27 27H37L41 32 37 37H27L23 32Z" fill="#d5a747"/>
+  <path d="M9 24 3 19M55 24 61 19M9 40 3 45M55 40 61 45" stroke="#718387" stroke-width="5"/>
+  <path d="M31 12V7M23 48 20 54M41 48 44 54" stroke="#f5b942" stroke-width="3"/>
+
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>RS-7 needle rifle</title>
+
+  <g stroke="#071216" stroke-width="3">
+    <path d="M8 25H28V19H37V24H82V20H93V26H120V36H93V40H82V35H47L43 53H31L34 36H8Z" fill="#233940"/>
+    <path d="M38 26H85V33H38Z" fill="#506870"/>
+    <path d="M45 27H82" stroke="#a3b6b7" stroke-width="2"/>
+    <path d="M92 27H119V34H92Z" fill="#172a32"/>
+    <path d="M99 29H119" stroke="#39e6d0" stroke-width="2"/>
+    <path d="M48 35H62L58 48H48Z" fill="#182e37"/>
+    <path d="M19 26H31V34H19Z" fill="#415b63"/>
+    <path d="M49 19V13H65L70 20" fill="#152a32"/>
+    <path d="M54 16H63" stroke="#82f5e5" stroke-width="2"/>
+  </g>
+  <path d="M116 26H122V36H116Z" fill="#f5b942" stroke="#071216" stroke-width="2"/>
+  <circle cx="40" cy="30" r="2.2" fill="#0a1419"/><circle cx="39.5" cy="29.4" r="1" fill="#668088"/><circle cx="86" cy="30" r="2.2" fill="#0a1419"/><circle cx="85.5" cy="29.4" r="1" fill="#668088"/>
+
+</svg>

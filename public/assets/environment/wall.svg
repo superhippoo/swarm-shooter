@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="112" viewBox="0 0 320 112" stroke-linecap="round" stroke-linejoin="round">
+  <title>Armored wall segment with top bevel and side face</title>
+
+  <ellipse cx="160" cy="98" rx="155" ry="9" fill="#03090d" opacity=".55"/>
+  <g stroke="#071216" stroke-width="3">
+    <path d="M7 20 22 8H301L314 20V84L300 99H20L7 86Z" fill="#1b2a31"/>
+    <path d="M7 20H314V66L300 81H20L7 68Z" fill="#465c63"/>
+    <path d="M17 23H304V58L293 68H28L17 59Z" fill="#2c4048"/>
+    <path d="M24 26H297V33H24Z" fill="#61767a" stroke="none"/>
+    <path d="M27 70H295V81H27Z" fill="#263b43"/>
+    <path d="M110 22V69M211 22V69" stroke="#15262d" stroke-width="4"/>
+    <path d="M115 26V62M216 26V62" stroke="#50656c" stroke-width="2"/>
+    <path d="M7 43H17M304 43H314" stroke="#829594" stroke-width="4"/>
+  </g>
+  <path d="M129 72H190V78H129Z" fill="#0e1b21"/>
+  <path d="M139 75H180" stroke="#f5b942" stroke-width="2" opacity=".35"/>
+  <circle cx="27" cy="45" r="2.2" fill="#0a1419"/><circle cx="26.5" cy="44.4" r="1" fill="#668088"/><circle cx="95" cy="45" r="2.2" fill="#0a1419"/><circle cx="94.5" cy="44.4" r="1" fill="#668088"/><circle cx="127" cy="45" r="2.2" fill="#0a1419"/><circle cx="126.5" cy="44.4" r="1" fill="#668088"/><circle cx="195" cy="45" r="2.2" fill="#0a1419"/><circle cx="194.5" cy="44.4" r="1" fill="#668088"/><circle cx="227" cy="45" r="2.2" fill="#0a1419"/><circle cx="226.5" cy="44.4" r="1" fill="#668088"/><circle cx="294" cy="45" r="2.2" fill="#0a1419"/><circle cx="293.5" cy="44.4" r="1" fill="#668088"/>
+
+</svg>

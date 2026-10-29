@@ -1,27 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" stroke-linecap="round" stroke-linejoin="round">
-  <title>Scout</title>
-  <desc>Original top-down scout operative, facing right, with light teal armor and a compact rifle.</desc>
+  <title>scout upper body armor</title>
+
   <g stroke="#071216" stroke-width="4">
-    <path d="M13 40 25 37 33 44 28 53 16 52 11 47Z" fill="#18353d"/>
-    <path d="M11 81 16 76 28 75 33 84 25 91 13 88Z" fill="#18353d"/>
-    <path d="M42 49 31 43 26 52 34 63 45 63Z" fill="#23636a"/>
-    <path d="M34 65 26 76 31 85 42 79 45 65Z" fill="#23636a"/>
-    <path d="M38 46 55 40 72 47 78 58 78 70 72 81 55 88 38 82 33 70 33 58Z" fill="#123c45"/>
-    <path d="M43 48 56 44 69 50 72 59 72 69 67 78 55 82 43 77 39 68 39 58Z" fill="#1b8f8a"/>
-    <path d="M39 58H47V70H39Z" fill="#f4b942" stroke-width="3"/>
+    <path d="M40 48 54 39 72 45 82 57 82 72 72 84 53 90 38 82 31 65Z" fill="#123c45"/>
+    <path d="M43 50 56 44 69 49 75 58 75 70 68 78 55 83 43 76 38 65Z" fill="#1b8f8a"/>
     <path d="M48 39 57 35 70 46 79 51 75 59 63 54 53 48Z" fill="#2fcbb9"/>
     <path d="M53 80 63 74 75 69 80 77 69 82 57 93 48 89Z" fill="#2fcbb9"/>
-    <path d="M51 41 57 40 65 47 60 51Z" fill="#82f5e5" stroke="none"/>
-    <path d="M55 83 64 78 69 80 59 88Z" fill="#82f5e5" stroke="none"/>
-    <path d="M74 65 64 60 59 65 69 75 78 74Z" fill="#263a40"/>
-    <path d="M72 64H99V60H105V66H120V74H105V71H99V78H91L87 87H78L82 76H72Z" fill="#203139"/>
-    <path d="M82 67H96" fill="none" stroke="#5ce8d7" stroke-width="3"/>
-    <path d="M116 66H120V74H116Z" fill="#f4b942" stroke-width="2"/>
-    <circle cx="80" cy="54" r="5" fill="#9cb5b2" stroke-width="3"/>
-    <circle cx="85" cy="77" r="5" fill="#9cb5b2" stroke-width="3"/>
-    <path d="M48 64C48 51 55 44 66 44S84 52 84 64 77 84 66 84 48 77 48 64Z" fill="#12343d"/>
-    <path d="M52 57Q56 48 66 48 75 48 79 55L72 59 61 55 54 63Z" fill="#39d8c4" stroke-width="3"/>
-    <path d="M72 50Q82 54 83 64 82 74 72 78L75 68 75 60Z" fill="#f4b942" stroke-width="3"/>
-    <path d="M58 51 61 57" fill="none" stroke="#b4fff1" stroke-width="3"/>
+    <path d="M51 43 58 42 65 47 60 52M53 83 63 78 69 80 59 88" fill="#82f5e5" stroke="none"/>
+    <path d="M37 57H45V73H37Z" fill="#182e36" stroke-width="2"/>
+    <path d="M39 60H43V66H39Z" fill="#f5b942" stroke="none"/>
+    <path d="M71 57 79 45 91 48 97 55 90 63 80 64Z" fill="#1b8f8a"/>
+    <path d="M79 48 88 51 91 55 85 58 77 57Z" fill="#2fcbb9" stroke-width="2"/>
+    <path d="M70 73 79 83 92 80 98 73 91 65 80 65Z" fill="#1b8f8a"/>
+    <path d="M78 75 85 79 91 76 88 72 80 70Z" fill="#2fcbb9" stroke-width="2"/>
+    <path d="M91 51 103 52 106 58 98 64 90 61Z" fill="#263b42" stroke-width="3"/>
+    <path d="M91 67 104 66 106 73 99 78 90 75Z" fill="#263b42" stroke-width="3"/>
+    <path d="M98 54H103M98 70H103" stroke="#9db6b3" stroke-width="2"/>
+    <path d="M48 64C48 50 55 42 66 42S84 51 84 64 77 86 66 86 48 78 48 64Z" fill="#142f38" stroke-width="5"/>
+    <path d="M52 56Q56 47 66 47 76 47 80 55L73 60 61 56 54 64Z" fill="#1b8f8a" stroke-width="3"/>
+    <path d="M72 49Q82 54 83 64 82 75 72 80L75 68 75 60Z" fill="#f5b942" stroke-width="3"/>
+    <path d="M56 50 61 48 67 50" fill="none" stroke="#82f5e5" stroke-width="2"/>
+    <path d="M54 67Q56 76 65 79" fill="none" stroke="#34545b" stroke-width="2"/>
+    <path d="M74 57 77 61M74 72 77 68" stroke="#d7f6e8" stroke-width="2"/>
   </g>
 </svg>

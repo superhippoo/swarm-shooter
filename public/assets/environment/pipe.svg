@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="96" viewBox="0 0 256 96" stroke-linecap="round" stroke-linejoin="round">
+  <title>Floor-level conduit and retaining brackets</title>
+
+  <path d="M11 63H245" stroke="#050d12" stroke-width="20" opacity=".55"/>
+  <path d="M11 53H245" stroke="#172b33" stroke-width="18"/>
+  <path d="M11 48H245" stroke="#4b6269" stroke-width="9"/>
+  <path d="M11 46H245" stroke="#718387" stroke-width="2" opacity=".55"/>
+  <g fill="#263b42" stroke="#0b171d" stroke-width="3">
+    <path d="M30 35H47V65H30ZM107 35H124V65H107ZM185 35H202V65H185Z"/>
+  </g>
+  <circle cx="38" cy="40" r="2.2" fill="#0a1419"/><circle cx="37.5" cy="39.4" r="1" fill="#668088"/><circle cx="38" cy="59" r="2.2" fill="#0a1419"/><circle cx="37.5" cy="58.4" r="1" fill="#668088"/><circle cx="115" cy="40" r="2.2" fill="#0a1419"/><circle cx="114.5" cy="39.4" r="1" fill="#668088"/><circle cx="115" cy="59" r="2.2" fill="#0a1419"/><circle cx="114.5" cy="58.4" r="1" fill="#668088"/><circle cx="193" cy="40" r="2.2" fill="#0a1419"/><circle cx="192.5" cy="39.4" r="1" fill="#668088"/><circle cx="193" cy="59" r="2.2" fill="#0a1419"/><circle cx="192.5" cy="58.4" r="1" fill="#668088"/>
+
+</svg>

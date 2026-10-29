@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="124" viewBox="0 0 320 124" stroke-linecap="round" stroke-linejoin="round">
+  <title>Industrial control console with three illuminated screens</title>
+
+  <ellipse cx="160" cy="106" rx="146" ry="12" fill="#03090d" opacity=".6"/>
+  <g stroke="#071216" stroke-width="3">
+    <path d="M17 38 35 17H285L305 37V93L288 106H34L17 93Z" fill="#15272e"/>
+    <path d="M17 37H305V80L287 94H35L17 81Z" fill="#38525b"/>
+    <path d="M27 39H295V72L282 83H40L27 72Z" fill="#1b3037"/>
+    <path d="M34 82H288V94H34Z" fill="#263d45"/>
+    <path d="M39 89H283" stroke="#597079" stroke-width="2"/>
+    <path d="M44 23H115L121 58H39Z" fill="#07171d"/>
+    <path d="M128 23H194L198 58H124Z" fill="#07171d"/>
+    <path d="M207 23H278L283 58H202Z" fill="#07171d"/>
+    <path d="M48 28H110L114 51H45Z" fill="#174449" stroke="#2c6c70" stroke-width="2"/>
+    <path d="M133 28H189L192 51H130Z" fill="#173940" stroke="#2c6c70" stroke-width="2"/>
+    <path d="M212 28H273L277 51H209Z" fill="#174449" stroke="#2c6c70" stroke-width="2"/>
+  </g>
+  <g fill="none" stroke="#57b6af" stroke-width="2" opacity=".72">
+    <path d="M52 44V34H61M65 34H81M65 39H102M65 44H93"/>
+    <path d="M137 43 145 36 153 41 162 31 171 39 184 33"/>
+    <path d="M216 34H232V44H216ZM240 34H269M240 39H260M240 44H265"/>
+  </g>
+  <g fill="#789497" stroke="#101f26" stroke-width="2">
+    <path d="M46 64H61V73H46ZM68 64H83V73H68ZM90 64H105V73H90Z"/>
+    <path d="M213 64H228V73H213ZM235 64H250V73H235ZM257 64H272V73H257Z"/>
+  </g>
+  <path d="M133 64H187V75H133Z" fill="#0b1d24" stroke="#46646b" stroke-width="2"/>
+  <path d="M141 69H180" stroke="#f5b942" stroke-width="3" opacity=".7"/>
+  <circle cx="27" cy="87" r="2.2" fill="#0a1419"/><circle cx="26.5" cy="86.4" r="1" fill="#668088"/><circle cx="295" cy="87" r="2.2" fill="#0a1419"/><circle cx="294.5" cy="86.4" r="1" fill="#668088"/><circle cx="27" cy="44" r="2.2" fill="#0a1419"/><circle cx="26.5" cy="43.4" r="1" fill="#668088"/><circle cx="295" cy="44" r="2.2" fill="#0a1419"/><circle cx="294.5" cy="43.4" r="1" fill="#668088"/>
+
+</svg>

@@ -529,6 +529,32 @@ button {
   font-size: 9px;
 }
 
+.request-history-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.request-card {
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent-dim);
+  background: rgba(7, 12, 16, 0.52);
+}
+
+.request-card[data-status="running"] { border-left-color: var(--cyan); }
+.request-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.request-card__date { color: var(--muted); font: 10px/1.5 var(--mono); }
+.request-card h3 { margin: 10px 0 6px; color: #d6e1e3; font-size: 14px; line-height: 1.5; }
+.request-card__request { margin: 0; color: #b9c7ca; font-size: 12px; line-height: 1.6; }
+.request-card__result { margin: 9px 0 0; color: #9cadaf; font-size: 11px; line-height: 1.6; }
+
 .task-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1276,6 +1302,7 @@ a.screenshot-card:hover {
     padding: 18px;
   }
 
+  .request-history-list,
   .task-grid,
   .resource-links,
   .screenshot-grid,

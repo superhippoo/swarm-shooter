@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Reactor segmented containment ring decal</title>
+
+  <g fill="none" stroke="#f5b942" opacity=".14">
+    <path d="M41 92A54 54 0 0 1 41 36M63 22A54 54 0 0 1 119 22M141 36A54 54 0 0 1 141 92M119 106A54 54 0 0 1 63 106" stroke-width="10"/>
+    <path d="M68 64H114M91 41V87" stroke-width="4"/>
+  </g>
+  <path d="M166 38H236M166 64H216M166 90H236" stroke="#d5a747" stroke-width="6" opacity=".1"/>
+
+</svg>

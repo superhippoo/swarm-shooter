@@ -1,28 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" stroke-linecap="round" stroke-linejoin="round">
-  <title>Swarmer</title>
-  <desc>Original small right-facing melee creature with a rounded carapace, hooked legs, and biting mandibles.</desc>
-  <g fill="none" stroke="#190e16" stroke-width="9">
-    <path d="M48 48 34 33 24 35"/>
-    <path d="M42 58 27 48 18 52"/>
-    <path d="M48 80 34 95 24 93"/>
-    <path d="M42 70 27 80 18 76"/>
-  </g>
-  <g fill="none" stroke="#a83247" stroke-width="4">
-    <path d="M48 48 34 33 24 35"/>
-    <path d="M42 58 27 48 18 52"/>
-    <path d="M48 80 34 95 24 93"/>
-    <path d="M42 70 27 80 18 76"/>
-  </g>
+  <title>swarmer creature</title>
+
+  <g fill="none" stroke="#190e16" stroke-width="9"><path d="M48 48 34 33 24 35"/><path d="M42 58 27 48 18 52"/><path d="M48 80 34 95 24 93"/><path d="M42 70 27 80 18 76"/></g>
+  <g fill="none" stroke="#a83247" stroke-width="4"><path d="M48 48 34 33 24 35"/><path d="M42 58 27 48 18 52"/><path d="M48 80 34 95 24 93"/><path d="M42 70 27 80 18 76"/></g>
   <g stroke="#190e16" stroke-width="4">
     <path d="M38 56 23 51 15 58 26 64 15 70 23 77 38 72Z" fill="#73243a"/>
-    <path d="M96 54Q108 48 114 51L108 59 116 64 105 65 98 62Z" fill="#f05a61"/>
-    <path d="M105 63 116 64 108 69 114 77Q108 80 96 74L98 66Z" fill="#f05a61"/>
+    <path d="M96 54Q108 48 114 51L108 59 116 64 105 65 98 62ZM105 63 116 64 108 69 114 77Q108 80 96 74L98 66Z" fill="#f05a61"/>
     <path d="M34 64C34 46 47 35 63 36S89 47 94 64C89 81 78 91 63 92S34 82 34 64Z" fill="#a83247" stroke-width="5"/>
     <path d="M43 51Q53 39 66 41L73 51 66 57 51 54 44 65Z" fill="#e94d59" stroke="none"/>
     <path d="M58 44 69 51 73 64 69 77 58 84 62 70 62 58Z" fill="#f06468" stroke-width="3"/>
-    <path d="M79 49Q94 47 102 57L102 71Q94 81 79 79L85 64Z" fill="#d94352"/>
-    <circle cx="45" cy="57" r="3" fill="#ff8a76" stroke="none"/>
-    <circle cx="45" cy="71" r="3" fill="#ff8a76" stroke="none"/>
+    <path d="M46 61 55 59M46 68 55 70M62 48 65 53M63 78 66 74" stroke="#8b2940" stroke-width="2"/>
+    <path d="M79 49Q94 47 102 57V71Q94 81 79 79L85 64Z" fill="#d94352"/>
+    <path d="M88 55 96 58M88 73 96 70" stroke="#fa847a" stroke-width="2"/>
     <circle cx="96" cy="58" r="3" fill="#ffc857" stroke-width="2"/>
     <circle cx="96" cy="70" r="3" fill="#ffc857" stroke-width="2"/>
   </g>

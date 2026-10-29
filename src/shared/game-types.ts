@@ -1,8 +1,78 @@
 export type CharacterId = 'scout' | 'heavy';
-export type WeaponId = 'rifle' | 'shotgun' | 'launcher';
+export type WeaponId = 'rifle' | 'shotgun' | 'launcher' | 'arc' | 'rail' | 'flame' | 'mines';
 export type EnemyId = 'swarmer' | 'skitter' | 'brute';
-export type GameScreen = 'menu' | 'playing' | 'paused' | 'victory' | 'dead';
+export type EnemyRank = 'normal' | 'elite' | 'alpha';
+export type GameScreen = 'menu' | 'stageIntro' | 'playing' | 'paused' | 'stageClear' | 'victory' | 'dead';
 export type MissionPhase = 'infiltrate' | 'defend' | 'extract' | 'complete';
+export type ObjectiveKind = 'reach' | 'defend' | 'collect' | 'purge' | 'hunt' | 'extract';
+export type LayoutId = 'medbay' | 'reactor' | 'hive';
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+interface ObjectiveBase {
+  id: string;
+  label: string;
+}
+
+export type ObjectiveDefinition =
+  | (ObjectiveBase & { kind: 'reach'; point: Point; radius: number })
+  | (ObjectiveBase & { kind: 'defend'; point: Point; radius: number; durationMs: number })
+  | (ObjectiveBase & { kind: 'collect'; points: Point[] })
+  | (ObjectiveBase & { kind: 'purge'; waveId: string })
+  | (ObjectiveBase & { kind: 'hunt'; rank: 'elite' | 'alpha'; count: number })
+  | (ObjectiveBase & { kind: 'extract'; point: Point; radius: number });
+
+export interface CampaignWaveDefinition {
+  id: string;
+  objectiveId: string;
+  atMs: number;
+  counts: Record<EnemyId, number>;
+  required: boolean;
+  direction: 'forward' | 'rear' | 'both' | null;
+  eliteCount?: number;
+  alphaCount?: number;
+}
+
+export interface CampaignSupplyDefinition extends Point {
+  atMs: number;
+}
+
+export interface StageDefinition {
+  id: string;
+  title: string;
+  layoutId: LayoutId;
+  playerStart: Point;
+  maxAlive: number;
+  objectives: ObjectiveDefinition[];
+  waves: CampaignWaveDefinition[];
+  supplies: CampaignSupplyDefinition[];
+  unlock?: WeaponId;
+}
+
+export interface CampaignSnapshot {
+  phase: 'intro' | 'combat' | 'clear' | 'complete';
+  stageId: string;
+  stageIndex: number;
+  stageCount: number;
+  stageTitle: string;
+  objectiveId: string;
+  objectiveIndex: number;
+  objectiveKind: ObjectiveKind;
+  objectiveLabel: string;
+  objectiveProgress: number;
+  objectiveTarget: number;
+  requiredRemaining: number;
+  unlockedWeapons: WeaponId[];
+  stageElapsedMs: number;
+  campaignElapsedMs: number;
+  stageKills: number;
+  campaignKills: number;
+  bestMultiKill: number;
+  activeMines: number;
+}
 
 export interface CharacterDefinition {
   id: CharacterId;
@@ -30,6 +100,7 @@ export interface WeaponDefinition {
   shake: number;
   automatic: boolean;
   explosionRadius?: number;
+  behavior?: 'chain' | 'rail' | 'cone' | 'mine';
 }
 
 export interface EnemyDefinition {
@@ -52,6 +123,7 @@ export interface WeaponSnapshot {
 export interface EnemySnapshot {
   id: number;
   type: EnemyId;
+  rank?: EnemyRank;
   x: number;
   y: number;
   screenX: number;
@@ -78,6 +150,12 @@ export interface GameSnapshot {
     maxHealth: number;
   };
   selectedWeapon: WeaponId | null;
+  visual: {
+    pose: 'idle' | 'a' | 'b';
+    weapon: WeaponId | null;
+    shots: number;
+    muzzle: { x: number; y: number };
+  };
   weapons: WeaponSnapshot[];
   mission: {
     phase: MissionPhase | null;
@@ -89,6 +167,7 @@ export interface GameSnapshot {
     screenX: number;
     screenY: number;
   };
+  campaign: CampaignSnapshot | null;
   enemies: EnemySnapshot[];
   performance: {
     fps: number;

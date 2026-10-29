@@ -1,5 +1,7 @@
 # 아키텍처와 작업 경계
 
+> **현재 상태**: 10단계 캠페인 통합 중입니다. `campaign.ts`, `campaign-logic.ts`, `weapon-behaviors.ts`와 캠페인 UI가 추가됐지만 `SwarmScene` 통합이 끝나지 않았습니다. 현재 코드·오류·재개 순서는 `docs/campaign-handoff.md`가 우선합니다.
+
 ## 실행
 
 - 게임: `/`
@@ -25,21 +27,32 @@
 ## 입력 경계
 
 - `src/main.ts`는 데스크톱 키보드·마우스와 모바일 UI를 게임 장면의 공개 입력 API에 연결한다. `(pointer: coarse)`일 때만 터치 모드와 자동 조준을 사용한다.
+- 데스크톱은 1280×720 `Scale.FIT`, 모바일은 `Scale.RESIZE`를 사용한다. 모바일 캔버스는 브라우저 전체 크기로 조정되고 Phaser 침머라의 viewport도 같은 크기로 갱신돼 고정 비율의 빈 여백을 만들지 않는다.
 - `src/game/touch-controls.ts`는 DOM 이동 스틱과 사격 버튼의 `pointerId`를 독립 추적한다. 포인터 캡처, 해제, 취소, 비활성화에서 입력을 초기화한다.
+- `src/main.ts`의 `bindTouchAction`은 무기·재장전·일시정지 버튼을 터치 `pointerdown`에서 즉시 실행하고 후속 합성 `click`의 중복 실행을 막는다. 마우스와 키보드의 `click`은 유지하며, 이동 터치가 유지된 두 번째 터치도 처리한다.
 - `src/game/SwarmScene.ts`는 터치 이동 벡터와 자동 조준을 처리한다. 화면에 보이는 활성 적 중 장애물에 가려지지 않은 가장 가까운 적을 선택하며 자동으로 발사하지는 않는다.
 - `GameSnapshot.input`은 입력 모드·이동 벡터·사격 상태·자동 조준 대상 ID를 읽기 전용으로 제공한다.
 - `tests/e2e/touch-driver.ts`는 CDP 터치와 탭으로 실제 컨트롤을 조작하고, `mission-runner.ts`는 데스크톱과 모바일 완주에 같은 임무 시나리오를 사용한다.
 
+## 렌더링 경계
+
+- `src/game/SwarmScene.ts`는 기존 물리 좌표·조준·전투·객체 풀의 단일 원천이다.
+- `src/game/facility.ts`는 타일 바닥, 정적 구역 레이어, 환경 에셋과 외곽 벽을 여섯 개의 800px RenderTexture 청크로 굽는다. `OBSTACLES`와 월드·목표 좌표를 바꾸지 않고 렌더링만 담당한다.
+- `src/game/operative-visual.ts`는 기존 `player` 위치를 따라 하체·상체·무기를 조합한다. 하체는 이동 방향, 상체와 무기는 조준 방향을 사용하며 총구 기준점에서 탄환과 화염을 출발시킨다.
+- `src/game/visual-config.ts`는 캐릭터 크기·프레임 간격과 무기 크기·총구 위치·반동을 정의한다.
+- `GameSnapshot.visual`은 현재 보행 pose, 시각 무기, 발사 이벤트 수와 총구 좌표만 제공하는 읽기 전용 검증 계약이다.
+
 ## 에셋 경로
 
-- `/assets/characters/scout.svg`
-- `/assets/characters/heavy.svg`
-- `/assets/enemies/swarmer.svg`
-- `/assets/enemies/skitter.svg`
-- `/assets/enemies/brute.svg`
-- `/assets/ui/crosshair.svg`
+- `/assets/characters/{scout,heavy}.svg`: 상체·팔 장갑
+- `/assets/characters/{id}-legs-{idle,a,b}.svg`: 캐릭터별 하체 프레임
+- `/assets/enemies/{swarmer,skitter,brute}.svg`와 `*-step.svg`: 적별 보행 프레임
+- `/assets/weapons/{rifle,shotgun,launcher}.svg`: 세 무기의 독립 외형
+- `/assets/environment/{floor,bed,console,wall,vent,pipe,elevator,relay,decal}.svg`: 시설 바닥·구조물·장식
+- `/assets/portraits/{scout,heavy}.svg`: 선택 메뉴 초상화
+- `/assets/ui/crosshair.svg`: 조준선
 
-현재 게임은 여섯 개의 독창적 SVG를 preload하며, 로드 실패 시 Phaser 생성 텍스처를 사용한다. 사운드는 외부 저작물 없이 Web Audio로 합성한다.
+현재 게임은 27개 SVG를 preload하고 두 초상화를 HTML에서 제공한다. `src/game/textures.ts`가 Vite `BASE_URL`을 적용하고, 로드 실패 시 `textures.ts`와 `art-fallbacks.ts`의 생성 텍스처로 대체한다. `scripts/generate-art.mjs`는 조준선을 제외한 28개 SVG의 제작 원본이며 `npm run art:generate`로 재생성한다. 사운드는 외부 저작물 없이 Web Audio로 합성한다.
 
 ## 범위
 

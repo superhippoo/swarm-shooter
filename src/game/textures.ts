@@ -1,13 +1,43 @@
 import Phaser from 'phaser';
 import { TEXTURES } from './config';
+import { CAMPAIGN_TEXTURES, enemyStepTexture, WEAPON_VISUALS } from './visual-config';
+
+export function gameAssetUrl(path: string): string {
+  const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+  return `${base}${path.replace(/^\/+/, '')}`;
+}
 
 export function preloadGameAssets(scene: Phaser.Scene): void {
-  scene.load.svg(TEXTURES.characters.scout, '/assets/characters/scout.svg');
-  scene.load.svg(TEXTURES.characters.heavy, '/assets/characters/heavy.svg');
-  scene.load.svg(TEXTURES.enemies.swarmer, '/assets/enemies/swarmer.svg');
-  scene.load.svg(TEXTURES.enemies.skitter, '/assets/enemies/skitter.svg');
-  scene.load.svg(TEXTURES.enemies.brute, '/assets/enemies/brute.svg');
-  scene.load.svg(TEXTURES.crosshair, '/assets/ui/crosshair.svg');
+  for (const id of ['scout', 'heavy'] as const) {
+    scene.load.svg(TEXTURES.characters[id], gameAssetUrl(`assets/characters/${id}.svg`));
+    for (const pose of ['idle', 'a', 'b']) {
+      scene.load.svg(`operative-${id}-legs-${pose}`, gameAssetUrl(`assets/characters/${id}-legs-${pose}.svg`));
+    }
+  }
+  for (const id of ['swarmer', 'skitter', 'brute'] as const) {
+    scene.load.svg(TEXTURES.enemies[id], gameAssetUrl(`assets/enemies/${id}.svg`));
+    scene.load.svg(enemyStepTexture(id), gameAssetUrl(`assets/enemies/${id}-step.svg`));
+  }
+  for (const [id, visual] of Object.entries(WEAPON_VISUALS)) {
+    scene.load.svg(visual.texture, gameAssetUrl(`assets/weapons/${id}.svg`));
+  }
+  for (const [rank, key, stepKey] of [
+    ['elite', CAMPAIGN_TEXTURES.enemies.elite, CAMPAIGN_TEXTURES.enemies.eliteStep],
+    ['alpha', CAMPAIGN_TEXTURES.enemies.alpha, CAMPAIGN_TEXTURES.enemies.alphaStep],
+  ] as const) {
+    scene.load.svg(key, gameAssetUrl(`assets/enemies/brute-${rank}.svg`));
+    scene.load.svg(stepKey, gameAssetUrl(`assets/enemies/brute-${rank}-step.svg`));
+  }
+  for (const [id, key] of Object.entries(CAMPAIGN_TEXTURES.effects)) {
+    scene.load.svg(key, gameAssetUrl(`assets/effects/${id}.svg`));
+  }
+  for (const [id, key] of Object.entries(CAMPAIGN_TEXTURES.decals)) {
+    scene.load.svg(key, gameAssetUrl(`assets/environment/decal-${id}.svg`));
+  }
+  for (const [id, key] of Object.entries(TEXTURES.environment)) {
+    scene.load.svg(key, gameAssetUrl(`assets/environment/${id}.svg`));
+  }
+  scene.load.svg(TEXTURES.crosshair, gameAssetUrl('assets/ui/crosshair.svg'));
 }
 
 export function createGeneratedTextures(scene: Phaser.Scene): void {

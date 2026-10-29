@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Hive organic growth and chevron decal</title>
+
+  <g fill="none" stroke="#a83247" opacity=".2">
+    <path d="M8 103Q29 63 62 78T111 57T153 25M31 111Q50 87 73 96T116 79T163 53" stroke-width="9"/>
+    <path d="M63 76 50 55M111 57 104 35M74 96 63 116M117 79 128 102" stroke-width="5"/>
+  </g>
+  <path d="M174 39 194 64 174 89M202 39 222 64 202 89M230 39 250 64 230 89" fill="none" stroke="#d75a66" stroke-width="7" opacity=".13"/>
+
+</svg>

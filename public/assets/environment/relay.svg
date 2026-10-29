@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" stroke-linecap="round" stroke-linejoin="round">
+  <title>Signal relay pedestal and directional antenna</title>
+
+  <ellipse cx="80" cy="126" rx="58" ry="20" fill="#03090d" opacity=".6"/>
+  <path d="M29 107 42 87H118L132 107V127L115 142H46L29 128Z" fill="#172c34" stroke="#071216" stroke-width="4"/>
+  <path d="M29 106H132V122L114 133H47L29 123Z" fill="#47616a" stroke="#071216" stroke-width="3"/>
+  <path d="M45 62 59 46H102L117 62V108L103 120H58L45 108Z" fill="#29454d" stroke="#071216" stroke-width="4"/>
+  <path d="M52 65H110V98L99 108H61L52 99Z" fill="#12262f" stroke="#5b7479" stroke-width="2"/>
+  <path d="M60 70H101V91H60Z" fill="#123e43" stroke="#3f7e7d" stroke-width="2"/>
+  <path d="M67 84 74 77 81 82 94 73" fill="none" stroke="#69d2c2" stroke-width="2"/>
+  <path d="M62 51H99" stroke="#8ba3a2" stroke-width="3"/>
+  <path d="M75 49V25H87V49" fill="#526e75" stroke="#071216" stroke-width="3"/>
+  <path d="M43 17 80 7 118 17 111 37 81 46 50 37Z" fill="#304c55" stroke="#071216" stroke-width="4"/>
+  <path d="M54 20 80 14 107 20 102 29 81 35 59 29Z" fill="#769395" stroke="#142a32" stroke-width="2"/>
+  <path d="M80 14V35" stroke="#bed0c7" stroke-width="2"/>
+  <circle cx="81" cy="114" r="5" fill="#f5b942" stroke="#513f22" stroke-width="2"/>
+  <path d="M43 114H55M106 114H118" stroke="#f5b942" stroke-width="3" opacity=".6"/>
+
+</svg>

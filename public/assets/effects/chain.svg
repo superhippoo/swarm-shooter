@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="48" viewBox="0 0 192 48" stroke-linecap="round" stroke-linejoin="round">
+  <title>ARC-5 branching chain arc</title>
+
+  <path d="M2 24H27L39 9 55 36 72 18 89 29 107 12 124 34 143 20 158 27 190 24M72 18 64 4M143 20 153 43" fill="none" stroke="#071216" stroke-width="10" opacity=".85"/>
+  <path d="M2 24H27L39 9 55 36 72 18 89 29 107 12 124 34 143 20 158 27 190 24M72 18 64 4M143 20 153 43" fill="none" stroke="#39e6d0" stroke-width="6"/>
+  <path d="M2 24H27L39 9 55 36 72 18 89 29 107 12 124 34 143 20 158 27 190 24M72 18 64 4M143 20 153 43" fill="none" stroke="#f2fff9" stroke-width="2"/>
+
+</svg>

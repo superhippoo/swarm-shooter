@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" stroke-linecap="round" stroke-linejoin="round">
-  <title>Skitter</title>
-  <desc>Original right-facing flanking creature with a narrow body and six long angular blade legs.</desc>
+  <title>skitter creature</title>
+
   <g stroke="#190e16" stroke-width="4">
     <path d="M47 57 31 43 17 40 25 51 39 64Z" fill="#8e2b43"/>
     <path d="M60 53 52 32 39 20 44 36 51 58Z" fill="#b63650"/>
@@ -11,8 +11,8 @@
     <path d="M35 64 49 51 71 48 88 54 101 64 88 74 71 80 49 77Z" fill="#76273e" stroke-width="5"/>
     <path d="M43 64 54 55 64 54 60 64 64 74 54 73Z" fill="#c73d54" stroke-width="3"/>
     <path d="M65 52 79 52 91 59 86 64 91 69 79 76 65 76 72 64Z" fill="#e74e60" stroke-width="3"/>
+    <path d="M56 57 66 61M56 71 66 67M74 55 81 60M74 73 81 68" stroke="#ff7b77" stroke-width="2"/>
     <path d="M87 54 111 58 119 64 111 70 87 74 96 64Z" fill="#f15c65"/>
-    <path d="M84 57 94 61 90 64 94 67 84 71" fill="none" stroke="#ff8a78" stroke-width="3"/>
     <circle cx="108" cy="61" r="2.5" fill="#ffc857" stroke-width="1.5"/>
     <circle cx="108" cy="67" r="2.5" fill="#ffc857" stroke-width="1.5"/>
   </g>

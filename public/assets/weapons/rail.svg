@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>Rail Lance with extended accelerator rails</title>
+
+  <g stroke="#071216" stroke-width="3">
+    <path d="M6 28H26V21H38V25H61L72 19H87V24H126V32H87V37H72L61 34H47L43 54H30L33 35H6Z" fill="#263b46"/>
+    <path d="M39 26H77V33H39Z" fill="#607983"/>
+    <path d="M49 20 62 13H108L119 20Z" fill="#172d38"/>
+    <path d="M62 16H108" stroke="#82f5e5" stroke-width="2"/>
+    <path d="M84 25H126V31H84Z" fill="#0e222c"/>
+    <path d="M88 27H125" stroke="#d7fff7" stroke-width="2"/>
+    <path d="M47 34H60L57 47H47Z" fill="#182e37"/>
+    <path d="M13 28H29V35H13Z" fill="#4c626c"/>
+  </g>
+  <g fill="#314e5a" stroke="#071216" stroke-width="2">
+    <path d="M88 20H94V37H88ZM101 20H107V37H101ZM114 20H120V37H114Z"/>
+  </g>
+  <path d="M90 23H92M103 23H105M116 23H118" stroke="#f5b942" stroke-width="3"/>
+  <path d="M122 25H127V32H122Z" fill="#e8f2ef"/>
+  <circle cx="41" cy="30" r="2.2" fill="#0a1419"/><circle cx="40.5" cy="29.4" r="1" fill="#668088"/><circle cx="72" cy="29" r="2.2" fill="#0a1419"/><circle cx="71.5" cy="28.4" r="1" fill="#668088"/>
+
+</svg>

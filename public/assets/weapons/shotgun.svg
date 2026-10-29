@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="64" viewBox="0 0 128 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>SG-4 breaching shotgun</title>
+
+  <g stroke="#071216" stroke-width="3">
+    <path d="M7 25H24V18H35V24H72L85 19H110V43H85L72 37H47L43 54H30L33 37H7Z" fill="#303e43"/>
+    <path d="M37 25H72V35H37Z" fill="#66777a"/>
+    <path d="M47 27H68" stroke="#c0c9bd" stroke-width="2"/>
+    <path d="M73 23 85 18H111V29H74ZM74 34H111V44H85L73 39Z" fill="#1d3037"/>
+    <path d="M85 21H106M85 37H106" stroke="#8a9a99" stroke-width="2"/>
+    <path d="M51 36H65L61 48H51Z" fill="#20373f"/>
+    <path d="M12 26H28V36H12Z" fill="#4d6268"/>
+  </g>
+  <path d="M106 20H114V28H106ZM106 35H114V43H106Z" fill="#d5a747" stroke="#071216" stroke-width="2"/>
+  <circle cx="39" cy="30" r="2.2" fill="#0a1419"/><circle cx="38.5" cy="29.4" r="1" fill="#668088"/><circle cx="73" cy="30" r="2.2" fill="#0a1419"/><circle cx="72.5" cy="29.4" r="1" fill="#668088"/>
+
+</svg>

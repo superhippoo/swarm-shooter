@@ -123,17 +123,29 @@ h1 span { color: var(--pink); font-weight: 400; }
 .card-heading strong { color: var(--mint); font: 800 32px/1 ui-monospace, monospace; letter-spacing: 0.04em; }
 .heavy .card-heading strong { color: var(--amber); }
 .operative-mark {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
   border: 1px solid currentColor;
-  border-radius: 50%;
+  border-radius: 5px;
   color: var(--mint);
+  background: linear-gradient(145deg, #18343b, #09151b);
   font: 300 26px/1 ui-monospace, monospace;
-  opacity: 0.65;
+  opacity: 0.9;
 }
-.heavy .operative-mark { color: var(--amber); }
+.heavy .operative-mark { color: var(--amber); background: linear-gradient(145deg, #3c3323, #11191c); }
+.portrait-initial { opacity: 0.35; }
+.operative-portrait {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 6px #0008);
+}
 .card-description { min-height: 38px; color: #93aaac; font-size: 12px; line-height: 1.6; }
 .stat-row { display: flex; justify-content: space-between; color: #83999c; font: 10px/1.2 ui-monospace, monospace; letter-spacing: 0.08em; }
 .stat-row b { color: #d5e4e3; font-size: 12px; }
@@ -176,7 +188,10 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
 .vitals-panel small { color: #6f898b; font: 9px/1 ui-monospace, monospace; }
 .controls-hint { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 13px; padding-bottom: 4px; color: #72898b; font-size: 9px; }
 .controls-hint kbd { margin-right: 3px; font-size: 8px; }
-.weapon-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; pointer-events: auto; }
+.weapon-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; pointer-events: auto; }
+.weapon-slot:disabled { opacity: 0.38; cursor: not-allowed; border-style: dashed; }
+.weapon-slot:disabled:hover { border-color: #2a3b43; }
+.touch-weapon-switch { display: none; }
 .weapon-slot { display: grid; grid-template-columns: auto 1fr; gap: 4px 6px; align-items: center; padding: 7px; color: #839b9d; text-align: left; cursor: pointer; border: 1px solid #2a3b43; border-radius: 3px; background: #101820; font: 9px/1 ui-monospace, monospace; }
 .weapon-slot span { color: #a3b6b7; }
 .weapon-slot b { grid-column: 1 / -1; color: #dcebea; font-size: 10px; font-weight: 500; }
@@ -197,6 +212,25 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
 .setting-row small { color: #839b9d; font-size: 10px; }
 .setting-row input { width: 38px; height: 20px; margin: 0; cursor: pointer; accent-color: var(--mint); }
 .setting-row i { display: none; }
+
+.stage-screen { z-index: 35; background: rgba(3, 9, 13, 0.76); backdrop-filter: blur(4px); }
+.stage-panel {
+  width: min(540px, 100%);
+  padding: 38px;
+  text-align: center;
+  border: 1px solid #35524f;
+  border-top: 3px solid var(--mint);
+  background: linear-gradient(145deg, rgba(12, 29, 34, 0.98), rgba(6, 15, 20, 0.98));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.58);
+}
+.stage-panel[data-phase="stageClear"] { border-top-color: var(--amber); }
+.stage-kicker { color: var(--mint); font: 700 11px/1.2 ui-monospace, monospace; letter-spacing: 0.18em; }
+.stage-panel[data-phase="stageClear"] .stage-kicker { color: var(--amber); }
+.stage-panel h2 { margin: 15px 0 10px; color: #edf9f6; font-size: 32px; line-height: 1.25; letter-spacing: -0.03em; }
+.stage-panel p { margin: 0; color: #9db2b5; font-size: 14px; line-height: 1.65; }
+.stage-reward { margin-top: 20px; padding: 14px; color: var(--amber); border: 1px solid rgba(255, 199, 102, 0.4); background: rgba(255, 199, 102, 0.07); font: 700 13px/1.4 ui-monospace, monospace; }
+.stage-stats { margin: 22px 0; color: #93aaac; font: 12px/1.6 ui-monospace, monospace; }
+#stage-continue-button { justify-content: center; min-height: 48px; }
 
 .modal-overlay { background: rgba(3, 8, 11, 0.78); backdrop-filter: blur(6px); }
 .modal-panel { width: min(420px, 100%); padding: 36px; text-align: center; border: 1px solid #35524f; border-top: 2px solid var(--mint); background: rgba(8, 18, 22, 0.97); box-shadow: 0 24px 90px rgba(0, 0, 0, 0.55); }
@@ -353,7 +387,7 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
     min-width: 48px;
     height: 48px;
     padding: 0;
-    touch-action: manipulation;
+    touch-action: none;
   }
   .icon-button span { display: none; }
   .combat-notice { top: 78px; max-width: 62vw; padding: 7px 12px; font-size: 10px; }
@@ -390,7 +424,7 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
     justify-content: center;
     gap: 4px;
     text-align: center;
-    touch-action: manipulation;
+    touch-action: none;
   }
   .weapon-slot span, .weapon-slot b { font-size: 9px; }
   .ammo-readout { position: absolute; right: 0; bottom: calc(100% + 5px); margin: 0; }
@@ -425,7 +459,7 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
   .character-card { min-height: 206px; padding: 12px 14px 10px; gap: 6px; }
   .card-index { font-size: 8px; }
   .card-heading strong { font-size: 24px; }
-  .operative-mark { width: 34px; height: 34px; font-size: 18px; }
+  .operative-mark { width: 44px; height: 44px; font-size: 18px; }
   .card-description { min-height: 0; font-size: 10px; line-height: 1.4; }
   .stat-row { font-size: 9px; }
   .stat-row b { font-size: 10px; }
@@ -438,4 +472,33 @@ kbd { padding: 2px 5px; border: 1px solid #40595c; border-bottom-width: 2px; bor
   .modal-panel p { margin-bottom: 14px; }
   .setting-row { margin-bottom: 12px; padding: 10px 12px; }
   .primary-button { padding: 12px 14px; }
+  #game-shell[data-input="touch"] .weapon-slots { display: none; }
+  .touch-weapon-switch {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    pointer-events: auto;
+  }
+  .touch-weapon-switch button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 0;
+    color: var(--mint);
+    cursor: pointer;
+    touch-action: none;
+    border: 1px solid var(--mint-dim);
+    background: #10292a;
+    font-size: 18px;
+  }
+  .touch-weapon-switch button:active { color: var(--ink); background: var(--mint); }
+  .touch-weapon-switch strong { color: var(--mint); text-align: center; font: 700 11px/1.2 ui-monospace, monospace; }
+  .stage-panel { max-height: calc(100dvh - 24px); padding: 20px; overflow: auto; }
+  .stage-panel h2 { margin-block: 10px 7px; font-size: 24px; }
+  .stage-panel p { font-size: 12px; }
+  .stage-kicker { font-size: 9px; }
+  .stage-reward { margin-top: 12px; padding: 10px; font-size: 11px; }
+  .stage-stats { margin: 12px 0; font-size: 10px; }
+  #stage-continue-button { min-height: 48px; }
 }

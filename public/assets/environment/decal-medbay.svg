@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Medbay sterile cross and lane decal</title>
+
+  <g fill="#82f5e5" opacity=".13">
+    <path d="M28 28H48V48H68V68H48V88H28V68H8V48H28Z"/>
+    <path d="M99 29H105V87H99ZM119 29H125V87H119ZM139 29H193V35H139ZM139 81H193V87H139Z"/>
+  </g>
+  <path d="M207 40H239M207 58H231M207 76H239" stroke="#a3b6b7" stroke-width="5" opacity=".1"/>
+
+</svg>

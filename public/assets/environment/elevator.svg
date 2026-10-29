@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" stroke-linecap="round" stroke-linejoin="round">
+  <title>Northwest cargo extraction elevator platform</title>
+
+  <ellipse cx="160" cy="175" rx="144" ry="131" fill="#03090d" opacity=".5"/>
+  <path d="M31 35 57 15H269L296 40V280L270 303H49L24 279Z" fill="#1c2c34" stroke="#071216" stroke-width="5"/>
+  <path d="M40 45 63 28H260L282 49V270L261 288H58L38 268Z" fill="#415760" stroke="#6a7f82" stroke-width="3"/>
+  <path d="M55 58H266V258H55Z" fill="#1c3139" stroke="#0c1a21" stroke-width="5"/>
+  <path d="M65 68H256V248H65Z" fill="#2c424a" stroke="#587078" stroke-width="2"/>
+  <path d="M160 69V247M66 158H255" stroke="#101e26" stroke-width="5"/>
+  <path d="M75 78H151V148H75ZM170 78H246V148H170ZM75 169H151V238H75ZM170 169H246V238H170Z" fill="#314952" stroke="#49616a" stroke-width="2"/>
+  <g fill="#c99a3b" opacity=".55">
+    <path d="M50 46H67V57H50ZM82 34H99V45H82ZM220 34H237V45H220ZM251 47H268V58H251Z"/>
+    <path d="M49 260H66V271H49ZM81 274H98V285H81ZM221 274H238V285H221ZM253 260H270V271H253Z"/>
+  </g>
+  <path d="M142 121H179L163 99ZM142 193H179L163 215Z" fill="#f5b942" opacity=".65"/>
+  <path d="M84 90H130M191 90H235" stroke="#7c9395" stroke-width="2" opacity=".5"/>
+  <circle cx="50" cy="61" r="2.2" fill="#0a1419"/><circle cx="49.5" cy="60.4" r="1" fill="#668088"/><circle cx="271" cy="61" r="2.2" fill="#0a1419"/><circle cx="270.5" cy="60.4" r="1" fill="#668088"/><circle cx="50" cy="256" r="2.2" fill="#0a1419"/><circle cx="49.5" cy="255.4" r="1" fill="#668088"/><circle cx="271" cy="256" r="2.2" fill="#0a1419"/><circle cx="270.5" cy="255.4" r="1" fill="#668088"/><circle cx="160" cy="45" r="2.2" fill="#0a1419"/><circle cx="159.5" cy="44.4" r="1" fill="#668088"/><circle cx="160" cy="274" r="2.2" fill="#0a1419"/><circle cx="159.5" cy="273.4" r="1" fill="#668088"/>
+
+</svg>

@@ -38,6 +38,8 @@ const elements = {
   telemetryBlockers: byId('telemetry-blockers'),
   taskCount: byId('task-count'),
   taskList: byId('task-list'),
+  requestHistoryCount: byId('request-history-count'),
+  requestHistoryList: byId('request-history-list'),
   nextActionCount: byId('next-action-count'),
   nextActions: byId('next-actions'),
   verificationCount: byId('verification-count'),
@@ -178,6 +180,32 @@ function renderCodeList(target: HTMLElement, values: unknown[]): void {
   }
 }
 
+function renderRequests(requests: unknown[]): void {
+  elements.requestHistoryList.replaceChildren();
+  if (requests.length === 0) {
+    elements.requestHistoryList.append(emptyState('등록된 사용자 요청이 없습니다.'));
+    return;
+  }
+  for (const entry of requests) {
+    const request = asObject(entry);
+    const card = make('article', 'request-card');
+    card.dataset.requestId = displayText(request.id, 'unknown-request');
+    card.dataset.status = statusName(request.status);
+    const header = make('div', 'request-card__header');
+    header.append(
+      make('span', 'request-card__date', formatDate(request.requestedAt)),
+      createStatusBadge(request.status),
+    );
+    card.append(
+      header,
+      make('h3', '', displayText(request.title, '제목 없는 요청')),
+      make('p', 'request-card__request', displayText(request.request, '요청 내용 없음')),
+      make('p', 'request-card__result', displayText(request.result, '처리 결과 대기')),
+    );
+    elements.requestHistoryList.append(card);
+  }
+}
+
 function renderTasks(tasks: unknown[]): void {
   elements.taskList.replaceChildren();
   if (tasks.length === 0) {
@@ -311,6 +339,7 @@ function renderScreenshots(screenshots: unknown[]): void {
 function renderStatus(status: JsonObject): void {
   const project = asObject(status.project);
   const tasks = asArray(status.tasks);
+  const requests = asArray(status.requests);
   const nextActions = asArray(status.nextActions);
   const verification = asArray(status.verification);
   const failures = asArray(status.failures);
@@ -341,6 +370,8 @@ function renderStatus(status: JsonObject): void {
   elements.activeCount.textContent = String(running);
   elements.taskCount.textContent = `${tasks.length} TASKS`;
 
+  elements.requestHistoryCount.textContent = `${requests.length}개`;
+  renderRequests(requests);
   renderTasks(tasks);
 
   elements.nextActionCount.textContent = `${nextActions.length}개`;

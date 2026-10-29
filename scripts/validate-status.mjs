@@ -193,6 +193,25 @@ async function main() {
     validateStringItems(requiredArray(entry, 'evidence', path), `${path}.evidence`);
   });
 
+  if ('requests' in status) {
+    const requests = requiredArray(status, 'requests', 'status');
+    requests.forEach((entry, index) => {
+      const path = `requests[${index}]`;
+      if (!isObject(entry)) {
+        report(path, '객체여야 합니다.');
+        return;
+      }
+      for (const key of ['id', 'taskId', 'title', 'request', 'result', 'requestedAt']) {
+        requiredString(entry, key, path);
+      }
+      validateDate(entry.requestedAt, `${path}.requestedAt`);
+      const requestStatus = requiredString(entry, 'status', path);
+      if (requestStatus && !TASK_STATUSES.has(requestStatus)) {
+        report(`${path}.status`, '허용되지 않은 요청 상태입니다.');
+      }
+    });
+  }
+
   const nextActions = requiredArray(status, 'nextActions', 'status');
   const verification = requiredArray(status, 'verification', 'status');
   const failures = requiredArray(status, 'failures', 'status');

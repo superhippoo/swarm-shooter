@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>Cryo coolant cell with vertical luminous core</title>
+
+  <ellipse cx="32" cy="51" rx="22" ry="9" fill="#02090d" opacity=".5"/>
+  <path d="M9 19H17V45H9L5 40V24ZM55 19H47V45H55L59 40V24Z" fill="#3c5963" stroke="#071216" stroke-width="3"/>
+  <path d="M23 5H41L49 15V49L41 59H23L15 49V15Z" fill="#29454d" stroke="#071216" stroke-width="4"/>
+  <path d="M25 12H39L43 18V46L38 52H26L21 46V18Z" fill="#123c45" stroke="#668088" stroke-width="2"/>
+  <path d="M28 15H36V49H28Z" fill="#39e6d0"/>
+  <path d="M32 21V43M23 26 41 38M41 26 23 38" stroke="#d7fff7" stroke-width="3"/>
+  <path d="M24 7H40M24 57H40" stroke="#a3b6b7" stroke-width="3"/>
+
+</svg>

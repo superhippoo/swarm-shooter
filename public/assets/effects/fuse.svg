@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" stroke-linecap="round" stroke-linejoin="round">
+  <title>Facility fuse with four prongs and amber bridge</title>
+
+  <ellipse cx="32" cy="48" rx="27" ry="10" fill="#02090d" opacity=".5"/>
+  <path d="M5 12H17V24H5ZM5 40H17V52H5ZM47 12H59V24H47ZM47 40H59V52H47Z" fill="#8a9a99" stroke="#071216" stroke-width="3"/>
+  <path d="M15 17H49L55 25V39L49 47H15L9 39V25Z" fill="#354c55" stroke="#071216" stroke-width="4"/>
+  <path d="M19 22H45V42H19Z" fill="#6f653b" stroke="#172831" stroke-width="2"/>
+  <path d="M23 24H41V40H23Z" fill="#f5b942"/>
+  <path d="M26 26H38V31H26Z" fill="#fff3c4"/>
+  <path d="M14 29H21M43 29H50M14 35H21M43 35H50" stroke="#a3b6b7" stroke-width="3"/>
+
+</svg>

@@ -1,221 +1,494 @@
-import { mkdir, writeFile } from 'node:fs/promises';
 import { expect, type Page } from '@playwright/test';
 import type { CharacterId, GameSnapshot, WeaponId } from '../../src/shared/game-types';
+import { capturePage, writeJsonArtifact } from './artifacts';
+import { CAMPAIGN_STAGES, expectedUnlockedWeapons } from './campaign-data';
+import { clampWorldPoint, distance, hasAmmo, summarizeState, weaponState } from './campaign-driver-utils';
 import { nearestEnemy, snapshot, waitForScreen, type CombatDriver } from './game-driver';
 
 type Point = { x: number; y: number };
 export type MissionDriverFactory = (page: Page) => CombatDriver;
 
-const infiltrationRoute: Point[] = [
-  { x: 650, y: 1320 },
-  { x: 1150, y: 1320 },
-  { x: 1150, y: 1000 },
-  { x: 1300, y: 900 },
-  { x: 1680, y: 900 },
-  { x: 1900, y: 800 },
-];
-
-const extractionRoute: Point[] = [
-  { x: 1710, y: 650 },
-  { x: 1750, y: 950 },
-  { x: 1450, y: 950 },
-  { x: 1050, y: 950 },
-  { x: 1000, y: 500 },
-  { x: 600, y: 500 },
-  { x: 620, y: 390 },
-  { x: 450, y: 450 },
-  { x: 240, y: 240 },
-];
-
-const defenseOrbit: Point[] = [
-  { x: 1810, y: 900 },
-  { x: 2070, y: 800 },
-  { x: 1900, y: 970 },
-  { x: 1730, y: 800 },
-  { x: 1900, y: 630 },
-  { x: 1990, y: 690 },
-];
-
-function distance(a: Point, b: Point): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
+export interface WeaponEvidence {
+  shots: number;
+  hitEvents: number;
+  targetsHit: number;
+  maxTargetsPerEvent: number;
+  mineBlasts: number;
 }
 
-function passedWaypoint(player: Point, origin: Point, target: Point): boolean {
-  if (distance(player, target) < 110) return true;
-  const directionX = target.x - origin.x;
-  const directionY = target.y - origin.y;
-  return (player.x - target.x) * directionX + (player.y - target.y) * directionY > 0;
+export interface StageReport {
+  stageIndex: number;
+  stageId: string;
+  title: string;
+  combatDurationMs: number;
+  stageElapsedMs: number;
+  stageKills: number;
+  campaignKills: number;
+  health: number;
+  unlockedWeapons: WeaponId[];
+  observedRanks: string[];
+  maxEnemies: number;
+  maxProjectiles: number;
+  maxParticles: number;
+  maxMines: number;
+  weaponEvidence: Record<string, WeaponEvidence>;
 }
 
-function availableWeapon(state: GameSnapshot, id: WeaponId): boolean {
-  const weapon = state.weapons.find((entry) => entry.id === id);
-  return Boolean(weapon && weapon.magazine + weapon.reserve > 0);
+export interface CampaignResult {
+  character: CharacterId;
+  inputMode: 'touch' | 'keyboard-mouse';
+  durationMs: number;
+  campaignElapsedMs: number;
+  campaignKills: number;
+  bestMultiKill: number;
+  finalHealth: number;
+  stages: StageReport[];
+  pageErrors: string[];
 }
 
-export async function completeMission(
+export interface CampaignRunOptions {
+  stageTimeLimitMs?: number;
+  campaignTimeLimitMs?: number;
+  shouldFire?: (state: GameSnapshot) => boolean;
+  onCombatSnapshot?: (state: GameSnapshot) => void | Promise<void>;
+}
+
+function emptyEvidence(): WeaponEvidence {
+  return { shots: 0, hitEvents: 0, targetsHit: 0, maxTargetsPerEvent: 0, mineBlasts: 0 };
+}
+
+function evidenceFor(evidence: Map<WeaponId, WeaponEvidence>, id: WeaponId): WeaponEvidence {
+  let current = evidence.get(id);
+  if (!current) {
+    current = emptyEvidence();
+    evidence.set(id, current);
+  }
+  return current;
+}
+
+function changedTargetCount(before: GameSnapshot, current: GameSnapshot): number {
+  if (before.screen !== 'playing' || current.screen !== 'playing') return 0;
+  const previous = new Map(before.enemies.map((enemy) => [enemy.id, enemy.health]));
+  const changed = new Set<number>();
+  for (const enemy of current.enemies) {
+    const oldHealth = previous.get(enemy.id);
+    if (oldHealth !== undefined && enemy.health < oldHealth) changed.add(enemy.id);
+  }
+  const currentIds = new Set(current.enemies.map((enemy) => enemy.id));
+  const killDelta = Math.max(0, (current.campaign?.campaignKills ?? 0) - (before.campaign?.campaignKills ?? 0));
+  if (killDelta > 0) {
+    for (const enemy of before.enemies) {
+      if (!currentIds.has(enemy.id)) changed.add(enemy.id);
+    }
+  }
+  return changed.size;
+}
+
+function recordWeaponEvidence(
+  before: GameSnapshot,
+  current: GameSnapshot,
+  evidence: Map<WeaponId, WeaponEvidence>,
+): void {
+  const targets = changedTargetCount(before, current);
+  const mineCountBefore = before.campaign?.activeMines ?? 0;
+  const mineCountAfter = current.campaign?.activeMines ?? 0;
+  const mineBlast = mineCountAfter < mineCountBefore;
+  const selected = current.visual.weapon ?? before.visual.weapon;
+  if (selected) {
+    const entry = evidenceFor(evidence, selected);
+    const shotDelta = Math.max(0, current.visual.shots - before.visual.shots);
+    entry.shots += shotDelta;
+    const activeHit = shotDelta > 0 || (selected === 'flame' && current.input.firing) || (selected === 'mines' && mineBlast);
+    if (activeHit && targets > 0) {
+      entry.hitEvents += 1;
+      entry.targetsHit += targets;
+      entry.maxTargetsPerEvent = Math.max(entry.maxTargetsPerEvent, targets);
+    }
+  }
+  if (mineBlast) {
+    const mines = evidenceFor(evidence, 'mines');
+    mines.mineBlasts += mineCountBefore - mineCountAfter;
+    if (targets > 0 && selected !== 'mines') {
+      mines.hitEvents += 1;
+      mines.targetsHit += targets;
+      mines.maxTargetsPerEvent = Math.max(mines.maxTargetsPerEvent, targets);
+    }
+  }
+}
+
+function targetForHunt(state: GameSnapshot) {
+  const rank = CAMPAIGN_STAGES[state.campaign?.stageIndex ?? 0].enemyRank;
+  if (!rank) return nearestEnemy(state);
+  return state.enemies.find((enemy) => enemy.rank === rank && enemy.health > 0) ?? nearestEnemy(state);
+}
+
+function desiredWeapon(
+  state: GameSnapshot,
+  evidence: Map<WeaponId, WeaponEvidence>,
+): WeaponId {
+  const campaign = state.campaign!;
+  const expected = CAMPAIGN_STAGES[campaign.stageIndex];
+  const available = (id: WeaponId) => campaign.unlockedWeapons.includes(id) && hasAmmo(state, id);
+  const nearest = nearestEnemy(state);
+  const nearestDistance = nearest ? distance(nearest, state.player) : Number.POSITIVE_INFINITY;
+  const nearby = state.enemies.filter((enemy) => distance(enemy, state.player) < 260).length;
+  const exercise = expected.exerciseWeapon;
+  if (exercise && available(exercise)) {
+    const currentEvidence = evidenceFor(evidence, exercise);
+    const needsMultiTarget = exercise === 'arc' || exercise === 'rail';
+    const evidenceReady = currentEvidence.hitEvents > 0 && (!needsMultiTarget || currentEvidence.maxTargetsPerEvent >= 2) &&
+      (exercise !== 'mines' || currentEvidence.mineBlasts > 0);
+    const inRange = exercise !== 'flame' || nearestDistance < 310;
+    if (!evidenceReady && inRange) return exercise;
+  }
+
+  if (nearestDistance < 230 && nearby >= 2 && available('mines')) return 'mines';
+  if (nearestDistance < 285 && available('flame')) return 'flame';
+  if (nearby >= 3 && available('rail')) return 'rail';
+  if (nearby >= 2 && available('arc')) return 'arc';
+  if (nearestDistance < 205 && nearby >= 4 && available('launcher')) return 'launcher';
+  if (nearestDistance < 165 && available('shotgun')) return 'shotgun';
+  for (const id of ['rifle', 'arc', 'rail', 'flame', 'launcher', 'shotgun', 'mines'] as const) {
+    if (available(id)) return id;
+  }
+  return 'rifle';
+}
+
+interface NavigationState {
+  key: string;
+  sampleAt: number;
+  samplePosition: Point;
+  detourUntil: number;
+  detourPoint: Point;
+  detourSign: number;
+}
+
+function freshNavigation(state: GameSnapshot, now: number): NavigationState {
+  return {
+    key: '',
+    sampleAt: now,
+    samplePosition: { x: state.player.x, y: state.player.y },
+    detourUntil: 0,
+    detourPoint: { x: state.player.x, y: state.player.y },
+    detourSign: 1,
+  };
+}
+
+function movementTarget(
+  state: GameSnapshot,
+  nearest: ReturnType<typeof nearestEnemy>,
+  navigation: NavigationState,
+  now: number,
+): Point {
+  const campaign = state.campaign!;
+  const collectionStep = campaign.objectiveKind === 'collect' ? campaign.objectiveProgress : 0;
+  const key = `${campaign.stageIndex}:${campaign.objectiveIndex}:${campaign.objectiveId}:${collectionStep}`;
+  if (navigation.key !== key) {
+    navigation.key = key;
+    navigation.sampleAt = now;
+    navigation.samplePosition = { x: state.player.x, y: state.player.y };
+    navigation.detourUntil = 0;
+  }
+
+  const objective = { x: state.mission.worldX, y: state.mission.worldY };
+  const kind = campaign.objectiveKind;
+  let target: Point;
+  if (kind === 'defend') {
+    const centerDistance = distance(state.player, objective);
+    if (centerDistance > 145) target = objective;
+    else {
+      const angle = now / 1800;
+      target = { x: objective.x + Math.cos(angle) * 115, y: objective.y + Math.sin(angle) * 115 };
+    }
+  } else if (kind === 'purge' || kind === 'hunt') {
+    if (nearest && distance(nearest, state.player) > 480) target = { x: nearest.x, y: nearest.y };
+    else {
+      const anchor = state.mission.worldX > 0 && state.mission.worldY > 0 ? objective : state.player;
+      const angle = now / 2100;
+      target = { x: anchor.x + Math.cos(angle) * 125, y: anchor.y + Math.sin(angle) * 125 };
+    }
+  } else {
+    target = objective;
+  }
+  target = clampWorldPoint(target);
+
+  if (now < navigation.detourUntil) return navigation.detourPoint;
+  if (now - navigation.sampleAt >= 1400) {
+    const moved = distance(state.player, navigation.samplePosition);
+    const remaining = distance(state.player, target);
+    if (moved < 18 && remaining > 85) {
+      const dx = target.x - state.player.x;
+      const dy = target.y - state.player.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      navigation.detourSign *= -1;
+      navigation.detourPoint = clampWorldPoint({
+        x: state.player.x + (-dy / length) * 280 * navigation.detourSign + (dx / length) * 70,
+        y: state.player.y + (dx / length) * 280 * navigation.detourSign + (dy / length) * 70,
+      });
+      navigation.detourUntil = now + 1500;
+    }
+    navigation.sampleAt = now;
+    navigation.samplePosition = { x: state.player.x, y: state.player.y };
+  }
+  return now < navigation.detourUntil ? navigation.detourPoint : target;
+}
+
+function assertPoolCeilings(state: GameSnapshot): void {
+  expect(state.performance.activeEnemies, '적 풀 상한').toBeLessThanOrEqual(72);
+  expect(state.performance.activeProjectiles, '발사체 풀 상한').toBeLessThanOrEqual(192);
+  expect(state.performance.activeParticles, '입자 풀 상한').toBeLessThanOrEqual(384);
+  expect(state.campaign?.activeMines ?? 0, '지뢰 풀 상한').toBeLessThanOrEqual(8);
+}
+
+async function continueWithRealInput(page: Page, driver: CombatDriver): Promise<void> {
+  const button = page.locator('#stage-continue-button');
+  await expect(button).toBeVisible();
+  if (driver.usesTouch) await button.tap();
+  else await button.click();
+}
+
+function serializeEvidence(evidence: Map<WeaponId, WeaponEvidence>): Record<string, WeaponEvidence> {
+  return Object.fromEntries([...evidence.entries()].map(([id, value]) => [id, { ...value }]));
+}
+
+export async function completeCampaign(
   page: Page,
   character: CharacterId,
   createDriver: MissionDriverFactory,
-): Promise<void> {
+  options: CampaignRunOptions = {},
+): Promise<CampaignResult> {
   const pageErrors: string[] = [];
   page.on('pageerror', (error) => pageErrors.push(error.message));
-  await mkdir('artifacts', { recursive: true });
   const driver = createDriver(page);
   const inputMode = driver.usesTouch ? 'touch' : 'keyboard-mouse';
-  const artifactPrefix = `mission-${driver.usesTouch ? 'touch-' : ''}${character}`;
-  await page.goto('/');
-  const characterButton = page.locator(`#select-${character}`);
-  if (driver.usesTouch) await characterButton.tap();
-  else await characterButton.click();
-  await waitForScreen(page, 'playing');
-  const initial = await snapshot(page);
-  expect(initial.input.mode).toBe(driver.usesTouch ? 'touch' : 'desktop');
+  const stageTimeLimitMs = options.stageTimeLimitMs ?? 300_000;
+  const campaignTimeLimitMs = options.campaignTimeLimitMs ?? 1_700_000;
   const startedAt = Date.now();
-  let routeIndex = 0;
-  let previousPhase = initial.mission.phase;
-  let phaseStartedAt = startedAt;
-  let phaseOrigin: Point = { x: initial.player.x, y: initial.player.y };
-  let lastWeaponSwitchAt = 0;
-  let maxEnemies = 0;
-  let maxProjectiles = 0;
-  let maxParticles = 0;
-  let minFps = Number.POSITIVE_INFINITY;
-  let lastObserved = initial;
-
-  const nextRouteTarget = (state: GameSnapshot): Point => {
-    const route = state.mission.phase === 'extract' ? extractionRoute : infiltrationRoute;
-    while (routeIndex < route.length - 1) {
-      const target = route[routeIndex];
-      const origin = routeIndex === 0 ? phaseOrigin : route[routeIndex - 1];
-      if (!passedWaypoint(state.player, origin, target)) break;
-      phaseOrigin = target;
-      routeIndex += 1;
-    }
-    return route[Math.min(routeIndex, route.length - 1)];
-  };
+  const reports: StageReport[] = [];
+  const recentHistory: unknown[] = [];
+  let initialRunId = -1;
+  let lastObserved: GameSnapshot | null = null;
 
   try {
-    while (Date.now() - startedAt < Number(process.env.SWARM_MISSION_TIME_LIMIT ?? 220_000)) {
-      const state = await snapshot(page);
-      if (state.runId !== initial.runId) {
-        throw new Error(`예상하지 못한 임무 초기화: ${initial.runId} → ${state.runId}, 이전=${lastObserved.screen}/${lastObserved.mission.phase}/HP ${lastObserved.player.health}/위치 ${lastObserved.player.x},${lastObserved.player.y}`);
-      }
-      lastObserved = state;
-      if (state.screen === 'victory') {
-        await driver.stop();
-        await page.screenshot({ path: `artifacts/${artifactPrefix}-victory.png`, fullPage: true });
-        const result = {
-          character,
-          inputMode,
-          durationMs: Date.now() - startedAt,
-          health: state.player.health,
-          maxHealth: state.player.maxHealth,
-          maxEnemies,
-          maxProjectiles,
-          maxParticles,
-          minFps: Number.isFinite(minFps) ? minFps : null,
-          pageErrors,
-        };
-        await writeFile(`artifacts/${artifactPrefix}-result.json`, JSON.stringify(result, null, 2));
-        console.log(`MISSION_RESULT ${JSON.stringify(result)}`);
-        expect(state.mission.phase).toBe('complete');
-        expect(pageErrors).toEqual([]);
-        const restartButton = page.locator('#restart-button');
-        if (driver.usesTouch) await restartButton.tap();
-        else await restartButton.click();
-        await waitForScreen(page, 'playing');
-        expect((await snapshot(page)).runId).toBeGreaterThan(initial.runId);
-        return;
-      }
-      if (state.screen === 'dead') {
-        await page.screenshot({ path: `artifacts/${artifactPrefix}-failed.png`, fullPage: true });
-        throw new Error(`임무 실패: ${character}, input=${inputMode}, phase=${state.mission.phase}, position=${state.player.x},${state.player.y}, enemies=${JSON.stringify(state.enemies)}, weapons=${JSON.stringify(state.weapons)}`);
-      }
-      if (state.screen !== 'playing') {
-        await page.waitForTimeout(100);
-        continue;
-      }
+    await page.goto('/');
+    const characterButton = page.locator(`#select-${character}`);
+    if (driver.usesTouch) await characterButton.tap();
+    else await characterButton.click();
+    await waitForScreen(page, 'stageIntro');
+    initialRunId = (await snapshot(page)).runId;
 
-      maxEnemies = Math.max(maxEnemies, state.performance.activeEnemies);
-      maxProjectiles = Math.max(maxProjectiles, state.performance.activeProjectiles);
-      maxParticles = Math.max(maxParticles, state.performance.activeParticles);
-      if (state.performance.fps > 0) minFps = Math.min(minFps, state.performance.fps);
-      if (state.mission.phase !== previousPhase) {
-        previousPhase = state.mission.phase;
-        phaseStartedAt = Date.now();
-        phaseOrigin = { x: state.player.x, y: state.player.y };
-        routeIndex = 0;
-        await driver.stop();
-        console.log(`MISSION_PHASE ${inputMode} ${character} ${previousPhase}`);
+    for (let stageIndex = 0; stageIndex < CAMPAIGN_STAGES.length; stageIndex += 1) {
+      const expected = CAMPAIGN_STAGES[stageIndex];
+      await waitForScreen(page, 'stageIntro');
+      let state = await snapshot(page);
+      expect(state.runId).toBe(initialRunId);
+      expect(state.input).toMatchObject({ moveX: 0, moveY: 0, firing: false });
+      expect(state.campaign).toMatchObject({
+        phase: 'intro',
+        stageIndex,
+        stageCount: CAMPAIGN_STAGES.length,
+        stageTitle: expected.title,
+        stageKills: 0,
+        unlockedWeapons: expectedUnlockedWeapons(stageIndex),
+        activeMines: 0,
+      });
+      await expect(page.locator('#stage-screen')).toBeVisible();
+      await expect(page.locator('#stage-kicker')).toContainText(`STAGE ${String(stageIndex + 1).padStart(2, '0')} START`);
+      await expect(page.locator('#stage-title')).toHaveText(expected.title);
+      await expect(page.locator('#stage-objective')).not.toBeEmpty();
+      await expect(page.locator('#stage-reward')).toBeVisible();
+      if (stageIndex > 0) {
+        expect(state.performance.activeEnemies, '새 단계 적 정리').toBe(0);
+        expect(state.performance.activeProjectiles, '새 단계 발사체 정리').toBe(0);
       }
+      const frozenIntroTime = state.campaign!.stageElapsedMs;
+      await page.waitForTimeout(150);
+      expect((await snapshot(page)).campaign?.stageElapsedMs).toBe(frozenIntroTime);
+      await capturePage(page, `stage-${String(stageIndex + 1).padStart(2, '0')}-intro.png`);
+      await waitForScreen(page, 'playing', 5000);
 
-      if (process.env.SWARM_DEBUG_DRIVER === '1') {
-        const route = state.mission.phase === 'extract' ? extractionRoute : infiltrationRoute;
-        console.log(`MISSION_PROGRESS ${JSON.stringify({ inputMode, tick: state.tick, phase: state.mission.phase, player: state.player, input: state.input, routeIndex, routeTarget: route[routeIndex], enemies: state.enemies.length })}`);
+      state = await snapshot(page);
+      expect(state.runId).toBe(initialRunId);
+      expect(state.input.mode).toBe(driver.usesTouch ? 'touch' : 'desktop');
+      expect(state.input).toMatchObject({ moveX: 0, moveY: 0, firing: false });
+      expect(state.campaign?.phase).toBe('combat');
+      expect(state.campaign?.unlockedWeapons).toEqual(expectedUnlockedWeapons(stageIndex));
+      for (const id of expectedUnlockedWeapons(stageIndex)) {
+        expect(hasAmmo(state, id), `${stageIndex + 1}단계 ${id} 탄약`).toBe(true);
       }
-      const autoAimTarget = state.enemies.find((enemy) => enemy.id === state.input.autoAimTargetId) ?? null;
-      const nearest = driver.usesTouch ? autoAimTarget : nearestEnemy(state);
-      const nearestDistance = nearest ? distance(nearest, state.player) : Number.POSITIVE_INFINITY;
-      const nearby = state.enemies.filter((enemy) => distance(enemy, state.player) < 220).length;
-      let desiredWeapon: WeaponId = 'rifle';
-      if (nearby >= 5 && nearestDistance < 190 && availableWeapon(state, 'launcher')) desiredWeapon = 'launcher';
-      else if (nearestDistance < 170 && availableWeapon(state, 'shotgun')) desiredWeapon = 'shotgun';
-      if (!availableWeapon(state, desiredWeapon)) {
-        desiredWeapon = (['shotgun', 'launcher', 'rifle'] as const)
-          .find((id) => availableWeapon(state, id)) ?? 'rifle';
-      }
-      if (driver.usesTouch && availableWeapon(state, 'rifle')) desiredWeapon = 'rifle';
-      const selected = state.weapons.find((weapon) => weapon.id === state.selectedWeapon);
-      if (!selected?.reloading && state.selectedWeapon !== desiredWeapon && Date.now() - lastWeaponSwitchAt > 1200) {
-        await driver.selectWeapon(desiredWeapon);
-        lastWeaponSwitchAt = Date.now();
-      }
-      await driver.aimAndFire();
-
-      if (nearest && (state.mission.phase === 'defend' || character === 'heavy') && nearestDistance < (state.mission.phase === 'defend' ? 140 : 80)) {
-        const dx = state.player.x - nearest.x;
-        const dy = state.player.y - nearest.y;
-        const length = Math.hypot(dx, dy);
-        const directionX = length > 1 ? dx / length : -1;
-        const directionY = length > 1 ? dy / length : 0;
-        let fleeX = state.player.x + directionX * 220;
-        let fleeY = state.player.y + directionY * 220;
-        if (state.mission.phase === 'defend') {
-          if (distance(state.player, { x: 1900, y: 800 }) > 200) {
-            fleeX = 1900;
-            fleeY = 800;
-          } else {
-            const fromCenterX = fleeX - 1900;
-            const fromCenterY = fleeY - 800;
-            const fromCenter = Math.hypot(fromCenterX, fromCenterY);
-            if (fromCenter > 170) {
-              fleeX = 1900 + fromCenterX / fromCenter * 170;
-              fleeY = 1900 + fromCenterY / fromCenter * 170;
-            }
-          }
+      if (expected.exerciseWeapon) {
+        const weapon = expected.exerciseWeapon;
+        if (driver.usesTouch) {
+          await expect(page.locator('#weapon-prev')).toBeVisible();
+          await expect(page.locator('#weapon-next')).toBeVisible();
         } else {
-          const nextTarget = nextRouteTarget(state);
-          fleeX = nextTarget.x + directionX * 100;
-          fleeY = nextTarget.y + directionY * 100;
+          await expect(page.locator(`#weapon-${weapon}`)).toBeVisible();
         }
-        await driver.moveToward(
-          Math.max(50, Math.min(2350, fleeX)),
-          Math.max(50, Math.min(1550, fleeY)),
-          16,
-        );
-      } else if (state.mission.phase === 'defend') {
-        const orbitIndex = Math.floor((Date.now() - phaseStartedAt) / 2200) % defenseOrbit.length;
-        await driver.moveToward(defenseOrbit[orbitIndex].x, defenseOrbit[orbitIndex].y, 42);
-      } else {
-        const nextTarget = nextRouteTarget(state);
-        await driver.moveToward(nextTarget.x, nextTarget.y, 40);
       }
-      await page.waitForTimeout(80);
+
+      const combatStartedAt = Date.now();
+      const observedRanks = new Set<string>();
+      const evidence = new Map<WeaponId, WeaponEvidence>();
+      const navigation = freshNavigation(state, combatStartedAt);
+      let previous = state;
+      let previousObjective = state.campaign?.objectiveId;
+      let maxEnemies = 0;
+      let maxProjectiles = 0;
+      let maxParticles = 0;
+      let maxMines = 0;
+      let lastStageElapsed = state.campaign?.stageElapsedMs ?? 0;
+      let lastCampaignKills = state.campaign?.campaignKills ?? 0;
+      let lastWeaponSwitchAt = combatStartedAt - 1000;
+
+      while (state.screen === 'playing') {
+        const now = Date.now();
+        if (now - combatStartedAt > stageTimeLimitMs || now - startedAt > campaignTimeLimitMs) {
+          throw new Error(`단계 시간 초과: ${stageIndex + 1}단계 ${expected.title}, objective=${state.campaign?.objectiveId}/${state.campaign?.objectiveKind}`);
+        }
+        lastObserved = state;
+        recentHistory.push({ atMs: now - startedAt, ...summarizeState(state) });
+        if (recentHistory.length > 35) recentHistory.shift();
+        expect(state.runId, '단계 전환 없는 전투 runId').toBe(initialRunId);
+        expect(state.campaign?.stageIndex).toBe(stageIndex);
+        expect(state.campaign?.stageElapsedMs ?? 0).toBeGreaterThanOrEqual(lastStageElapsed);
+        expect(state.campaign?.campaignKills ?? 0).toBeGreaterThanOrEqual(lastCampaignKills);
+        lastStageElapsed = state.campaign?.stageElapsedMs ?? lastStageElapsed;
+        lastCampaignKills = state.campaign?.campaignKills ?? lastCampaignKills;
+        assertPoolCeilings(state);
+        maxEnemies = Math.max(maxEnemies, state.performance.activeEnemies);
+        maxProjectiles = Math.max(maxProjectiles, state.performance.activeProjectiles);
+        maxParticles = Math.max(maxParticles, state.performance.activeParticles);
+        maxMines = Math.max(maxMines, state.campaign?.activeMines ?? 0);
+        for (const enemy of state.enemies) observedRanks.add(enemy.rank ?? 'normal');
+        recordWeaponEvidence(previous, state, evidence);
+        await options.onCombatSnapshot?.(state);
+        previous = state;
+
+        if (state.campaign?.objectiveId !== previousObjective) {
+          previousObjective = state.campaign?.objectiveId;
+          console.log(`CAMPAIGN_OBJECTIVE ${inputMode} ${character} stage=${stageIndex + 1} objective=${previousObjective}/${state.campaign?.objectiveKind}`);
+          await writeJsonArtifact(`stage-${String(stageIndex + 1).padStart(2, '0')}-objective-${state.campaign?.objectiveIndex}.json`, summarizeState(state));
+        }
+
+        const nearest = state.campaign?.objectiveKind === 'hunt' ? targetForHunt(state) : nearestEnemy(state);
+        const desired = desiredWeapon(state, evidence);
+        const selected = weaponState(state, state.selectedWeapon);
+        const needsSwitch = state.selectedWeapon !== desired && now - lastWeaponSwitchAt >= 450 &&
+          (!selected?.reloading || selected.magazine === 0);
+        if (needsSwitch) {
+          await driver.selectWeapon(desired);
+          lastWeaponSwitchAt = Date.now();
+        }
+        const fired = (options.shouldFire?.(state) ?? true)
+          ? await driver.aimAndFire(nearest?.id)
+          : (await driver.stop(), false);
+        if (!fired && selected && selected.reserve > 0 && selected.magazine <= 2 && !selected.reloading) {
+          await driver.reload();
+        }
+        const target = movementTarget(state, nearest, navigation, now);
+        await driver.moveToward(target.x, target.y, state.campaign?.objectiveKind === 'extract' ? 16 : 32);
+        await page.waitForTimeout(75);
+        state = await snapshot(page);
+      }
+
+      lastObserved = state;
+      if (state.screen === 'dead') {
+        throw new Error(`완주 중 사망: ${stageIndex + 1}단계 ${expected.title}, objective=${state.campaign?.objectiveId}, HP=0`);
+      }
+      expect(state.screen, `${stageIndex + 1}단계 클리어 화면`).toBe('stageClear');
+      expect(state.input, '단계 전환 입력 해제').toMatchObject({ moveX: 0, moveY: 0, firing: false });
+      await driver.stop();
+      expect(state.runId).toBe(initialRunId);
+      expect(state.campaign).toMatchObject({ phase: 'clear', stageIndex, stageTitle: expected.title });
+      await expect(page.locator('#stage-screen')).toBeVisible();
+      await expect(page.locator('#stage-kicker')).toContainText(`STAGE ${String(stageIndex + 1).padStart(2, '0')} CLEAR`);
+      await expect(page.locator('#stage-title')).toHaveText(expected.title);
+      await expect(page.locator('#stage-stats')).not.toBeEmpty();
+      await expect(page.locator('#stage-continue-button')).toBeVisible();
+      if (expected.reward) await expect(page.locator('#stage-reward')).toContainText(expected.reward.label);
+      const clearElapsed = state.campaign?.stageElapsedMs;
+      await page.waitForTimeout(150);
+      expect((await snapshot(page)).campaign?.stageElapsedMs).toBe(clearElapsed);
+      await capturePage(page, `stage-${String(stageIndex + 1).padStart(2, '0')}-clear.png`);
+
+      reports.push({
+        stageIndex,
+        stageId: state.campaign!.stageId,
+        title: state.campaign!.stageTitle,
+        combatDurationMs: Date.now() - combatStartedAt,
+        stageElapsedMs: state.campaign!.stageElapsedMs,
+        stageKills: state.campaign!.stageKills,
+        campaignKills: state.campaign!.campaignKills,
+        health: state.player.health,
+        unlockedWeapons: [...state.campaign!.unlockedWeapons],
+        observedRanks: [...observedRanks],
+        maxEnemies,
+        maxProjectiles,
+        maxParticles,
+        maxMines,
+        weaponEvidence: serializeEvidence(evidence),
+      });
+      console.log(`CAMPAIGN_STAGE_CLEAR ${inputMode} ${character} ${JSON.stringify(reports.at(-1))}`);
+      await continueWithRealInput(page, driver);
+      if (stageIndex < CAMPAIGN_STAGES.length - 1) await waitForScreen(page, 'stageIntro');
+      else await waitForScreen(page, 'victory');
     }
-    const last = await snapshot(page);
-    await page.screenshot({ path: `artifacts/${artifactPrefix}-timeout.png`, fullPage: true });
-    throw new Error(`임무 시간 초과: ${character}, input=${inputMode}, phase=${last.mission.phase}, position=${last.player.x},${last.player.y}, enemies=${last.enemies.length}`);
+
+    const final = await snapshot(page);
+    lastObserved = final;
+    expect(final.input).toMatchObject({ moveX: 0, moveY: 0, firing: false });
+    expect(final.campaign).toMatchObject({
+      phase: 'complete',
+      stageIndex: CAMPAIGN_STAGES.length - 1,
+      stageCount: CAMPAIGN_STAGES.length,
+    });
+    await expect(page.locator('#result-title')).toHaveText('MISSION COMPLETE');
+    await expect(page.locator('#result-time')).not.toBeEmpty();
+    const resultKills = await page.locator('#result-kills').textContent();
+    expect(Number(resultKills?.replace(/\D/g, ''))).toBe(final.campaign?.campaignKills);
+    await capturePage(page, 'mission-complete.png');
+    const result: CampaignResult = {
+      character,
+      inputMode,
+      durationMs: Date.now() - startedAt,
+      campaignElapsedMs: final.campaign?.campaignElapsedMs ?? 0,
+      campaignKills: final.campaign?.campaignKills ?? 0,
+      bestMultiKill: final.campaign?.bestMultiKill ?? 0,
+      finalHealth: final.player.health,
+      stages: reports,
+      pageErrors,
+    };
+    await writeJsonArtifact('campaign-result.json', result);
+    console.log(`CAMPAIGN_RESULT ${JSON.stringify(result)}`);
+    expect(reports).toHaveLength(CAMPAIGN_STAGES.length);
+    expect(pageErrors).toEqual([]);
+
+    const restart = page.locator('#restart-button');
+    if (driver.usesTouch) await restart.tap();
+    else await restart.click();
+    await waitForScreen(page, 'stageIntro');
+    const restarted = await snapshot(page);
+    expect(restarted.runId).toBeGreaterThan(initialRunId);
+    expect(restarted.campaign).toMatchObject({ stageIndex: 0, stageKills: 0, campaignKills: 0, unlockedWeapons: ['rifle', 'shotgun', 'launcher'] });
+    return result;
+  } catch (error) {
+    const failure = {
+      error: error instanceof Error ? { message: error.message, stack: error.stack } : String(error),
+      character,
+      inputMode,
+      initialRunId,
+      elapsedMs: Date.now() - startedAt,
+      lastObserved: lastObserved ? summarizeState(lastObserved) : null,
+      recentHistory,
+      completedStages: reports,
+      pageErrors,
+    };
+    await writeJsonArtifact('campaign-failure.json', failure).catch(() => undefined);
+    await capturePage(page, 'campaign-failure.png').catch(() => undefined);
+    throw error;
   } finally {
     await driver.stop();
   }
 }
+
+export const completeMission = completeCampaign;

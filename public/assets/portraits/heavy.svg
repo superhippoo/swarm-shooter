@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="208" viewBox="0 0 192 208" stroke-linecap="round" stroke-linejoin="round">
+  <title>heavy operative portrait</title>
+
+  <path d="M24 206 32 151 64 126H128L161 151 170 206Z" fill="#081319" opacity=".6"/>
+  <g stroke="#071216" stroke-width="4">
+    <path d="M26 188 32 145 63 126H130L162 145 168 188Z" fill="#293b40"/>
+    <path d="M33 148 62 131 72 151 60 179 28 184Z" fill="#e9ac45"/>
+    <path d="M160 148 131 131 120 151 133 179 165 184Z" fill="#e9ac45"/>
+    <path d="M62 134 79 123H114L132 134 124 188H69Z" fill="#a9652d"/>
+    <path d="M76 142H116L121 176 109 188H84L72 176Z" fill="#293b40"/>
+    <path d="M82 150H110M80 159H113M84 170H109" stroke="#e9ac45" stroke-width="3"/>
+    <path d="M56 67 67 30 90 18 119 26 137 51 136 91 119 123 91 134 65 117 53 91Z" fill="#293b40" stroke-width="5"/>
+    <path d="M64 62 74 37 92 28 114 34 128 53 125 70H64Z" fill="#e9ac45"/>
+    <path d="M62 70 75 57H119L132 70 125 100 112 115H81L65 100Z" fill="#102b35"/>
+    <path d="M67 73 80 64H115L126 73 119 87H77Z" fill="#55ead7" stroke-width="3"/>
+    <path d="M76 70H108" stroke="#ffd77a" stroke-width="3"/>
+    <path d="M75 99H116L110 111H82Z" fill="#34515a" stroke-width="2"/>
+    <path d="M69 42 83 31 96 28" fill="none" stroke="#ffd77a" stroke-width="3"/>
+    <path d="M39 151 56 141M136 141 153 151" stroke="#ffd77a" stroke-width="3"/>
+  </g>
+  <path d="M33 187H161" stroke="#e9ac45" stroke-width="2" opacity=".45"/>
+</svg>

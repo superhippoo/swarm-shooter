@@ -5,6 +5,7 @@ import type {
   WeaponId,
 } from '../shared/game-types';
 import {
+  CAMPAIGN_WEAPON_ORDER,
   COMBAT,
   MISSION,
   WEAPONS,
@@ -77,11 +78,14 @@ export function createWeaponRuntime(
 }
 
 export function createWeaponCollection(character: CharacterDefinition): WeaponCollection {
-  return {
-    rifle: createWeaponRuntime(WEAPONS.rifle, character),
-    shotgun: createWeaponRuntime(WEAPONS.shotgun, character),
-    launcher: createWeaponRuntime(WEAPONS.launcher, character),
-  };
+  return Object.fromEntries(CAMPAIGN_WEAPON_ORDER.map((id) => [
+    id,
+    createWeaponRuntime(WEAPONS[id], character),
+  ])) as WeaponCollection;
+}
+
+export function createWeaponCooldowns(): Record<WeaponId, number> {
+  return Object.fromEntries(CAMPAIGN_WEAPON_ORDER.map((id) => [id, 0])) as Record<WeaponId, number>;
 }
 
 export function canFireWeapon(
@@ -154,8 +158,11 @@ export function reloadProgress(
   return clamp01(elapsed / reloadMs);
 }
 
-export function totalAmmo(weapons: WeaponCollection): number {
-  return WEAPON_ORDER.reduce(
+export function totalAmmo(
+  weapons: WeaponCollection,
+  unlocked: readonly WeaponId[] = WEAPON_ORDER,
+): number {
+  return unlocked.reduce(
     (total, id) => total + weapons[id].magazine + weapons[id].reserve,
     0,
   );
@@ -189,10 +196,11 @@ export function applySupply(
   weapons: WeaponCollection,
   health: number,
   character: CharacterDefinition,
+  unlocked: readonly WeaponId[] = WEAPON_ORDER,
 ): SupplyUpdate {
   const restored = { ...weapons };
   let used = health < character.maxHealth;
-  for (const id of WEAPON_ORDER) {
+  for (const id of unlocked) {
     const maximum = maxReserve(WEAPONS[id], character);
     const amount = Math.ceil(maximum * 0.4);
     const reserve = Math.min(maximum, weapons[id].reserve + amount);

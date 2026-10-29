@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="128" viewBox="0 0 192 128" stroke-linecap="round" stroke-linejoin="round">
+  <title>Flame Projector layered cone</title>
+
+  <path d="M2 56 38 43 33 55 79 30 70 49 126 17 112 46 177 14 158 46 190 38 176 64 190 90 158 82 177 114 112 82 126 111 70 79 79 98 33 73 38 85 2 72Z" fill="#c84b32" stroke="#30151a" stroke-width="4" opacity=".9"/>
+  <path d="M3 59 46 50 40 61 91 42 80 59 143 35 126 58 177 51 160 65 177 81 126 70 143 94 80 69 91 86 40 67 46 78 3 69Z" fill="#f58b3c"/>
+  <path d="M3 61 54 56 47 65 105 52 91 65 132 61 116 68 132 75 91 70 105 82 47 70 54 75 3 69Z" fill="#ffd77a"/>
+  <path d="M3 63 62 61 52 66 91 64 78 68 52 70 62 72 3 68Z" fill="#fff3c4"/>
+
+</svg>

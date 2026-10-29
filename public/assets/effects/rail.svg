@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="32" viewBox="0 0 256 32" stroke-linecap="round" stroke-linejoin="round">
+  <title>Rail Lance penetrating trajectory</title>
+
+  <path d="M2 16H254" stroke="#071216" stroke-width="10" opacity=".8"/>
+  <path d="M2 16H254" stroke="#39e6d0" stroke-width="6" opacity=".8"/>
+  <path d="M2 16H254" stroke="#f2fff9" stroke-width="2"/>
+  <path d="M2 8H181M39 24H254M238 8 254 16 238 24" fill="none" stroke="#82f5e5" stroke-width="2" opacity=".8"/>
+
+</svg>

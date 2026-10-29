@@ -1,5 +1,6 @@
 import { expect, type CDPSession, type Page } from '@playwright/test';
 import type { WeaponId } from '../../src/shared/game-types';
+import { unlockedWeaponOrder } from './campaign-driver-utils';
 import { nearestEnemy, snapshot, type CombatDriver } from './game-driver';
 
 type TouchPoint = { x: number; y: number; id: number };
@@ -45,15 +46,29 @@ export class TouchGameDriver implements CombatDriver {
   }
 
   async selectWeapon(id: WeaponId): Promise<void> {
-    const state = await snapshot(this.page);
+    let state = await snapshot(this.page);
     if (state.screen !== 'playing' || state.selectedWeapon === id) return;
-    await this.setFireInput(false);
-    await this.page.locator(`#weapon-${id}`).tap();
-    await expect.poll(async () => {
-      const current = await snapshot(this.page);
-      if (current.screen === 'dead') throw new Error('터치 무기 교체 중 플레이어가 사망했습니다.');
-      return current.selectedWeapon;
-    }, { timeout: 3000 }).toBe(id);
+    if (this.desiredFiring) await this.setFireInput(false);
+    const order = unlockedWeaponOrder(state);
+    if (!order.includes(id)) throw new Error(`아직 해금되지 않은 무기를 선택할 수 없습니다: ${id}`);
+
+    for (let step = 0; step < order.length; step += 1) {
+      state = await snapshot(this.page);
+      if (state.selectedWeapon === id) return;
+      const currentIndex = Math.max(0, order.indexOf(state.selectedWeapon ?? 'rifle'));
+      const targetIndex = order.indexOf(id);
+      const forwardSteps = (targetIndex - currentIndex + order.length) % order.length;
+      const backwardSteps = (currentIndex - targetIndex + order.length) % order.length;
+      const selector = forwardSteps <= backwardSteps ? '#weapon-next' : '#weapon-prev';
+      const expected = order[(currentIndex + (forwardSteps <= backwardSteps ? 1 : -1) + order.length) % order.length];
+      await this.tapControl(selector);
+      await expect.poll(async () => (await snapshot(this.page)).selectedWeapon, { timeout: 3000 }).toBe(expected);
+    }
+    throw new Error(`이전/다음 무기 버튼으로 ${id}를 선택하지 못했습니다.`);
+  }
+
+  async reload(): Promise<void> {
+    if ((await snapshot(this.page)).screen === 'playing') await this.tapControl('#reload-button');
   }
 
   async moveToward(x: number, y: number, deadZone = 36): Promise<void> {
@@ -67,17 +82,38 @@ export class TouchGameDriver implements CombatDriver {
 
   async aimAndFire(): Promise<boolean> {
     const state = await snapshot(this.page);
-    if (state.screen !== 'playing' || !nearestEnemy(state)) {
+    const target = state.enemies.find((enemy) => enemy.id === state.input.autoAimTargetId) ?? nearestEnemy(state);
+    if (state.screen !== 'playing' || !target) {
       await this.setFireInput(false);
       return false;
     }
-    if (state.selectedWeapon === 'rifle') {
+    if (state.selectedWeapon === 'rifle' || state.selectedWeapon === 'flame') {
       await this.setFireInput(true);
     } else {
       if (this.desiredFiring) await this.setFireInput(false);
-      await this.page.locator('#fire-button').tap();
+      await this.tapControl('#fire-button');
     }
     return true;
+  }
+
+  async tapWhileHolding(selector: string): Promise<void> {
+    const box = await this.page.locator(selector).boundingBox();
+    if (!box) throw new Error(`터치 버튼 좌표를 읽을 수 없습니다: ${selector}`);
+    const point = {
+      x: box.x + box.width / 2,
+      y: box.y + box.height / 2,
+      id: Math.max(0, ...this.points.keys()) + 1,
+    };
+    this.points.set(point.id, point);
+    await this.dispatch('touchStart');
+    await this.page.waitForTimeout(80);
+    await this.session!.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [point] });
+    this.points.delete(point.id);
+  }
+
+  private async tapControl(selector: string): Promise<void> {
+    if (this.points.size > 0) await this.tapWhileHolding(selector);
+    else await this.page.locator(selector).tap();
   }
 
   private async reconcile(): Promise<void> {
@@ -91,10 +127,22 @@ export class TouchGameDriver implements CombatDriver {
     if (!this.firePoint && this.desiredFiring) await this.startFire();
   }
 
+  private async releaseIfInactive(): Promise<boolean> {
+    const state = await snapshot(this.page);
+    if (state.screen === 'playing') return false;
+    this.desiredMove = { x: 0, y: 0 };
+    this.desiredFiring = false;
+    await this.endAll();
+    return true;
+  }
+
   private async startMove(): Promise<void> {
     const pad = await this.page.locator('#move-pad').boundingBox();
     const knob = await this.page.locator('#move-knob').boundingBox();
-    if (!pad || !knob) throw new Error('이동 스틱 좌표를 읽을 수 없습니다.');
+    if (!pad || !knob) {
+      if (await this.releaseIfInactive()) return;
+      throw new Error('이동 스틱 좌표를 읽을 수 없습니다.');
+    }
     this.moveCenter = { x: pad.x + pad.width / 2, y: pad.y + pad.height / 2 };
     this.moveRadius = Math.max(1, (pad.width - knob.width) / 2);
     const point = {
@@ -122,7 +170,10 @@ export class TouchGameDriver implements CombatDriver {
 
   private async startFire(): Promise<void> {
     const button = await this.page.locator('#fire-button').boundingBox();
-    if (!button) throw new Error('사격 버튼 좌표를 읽을 수 없습니다.');
+    if (!button) {
+      if (await this.releaseIfInactive()) return;
+      throw new Error('사격 버튼 좌표를 읽을 수 없습니다.');
+    }
     const point = { x: button.x + button.width / 2, y: button.y + button.height / 2, id: 2 };
     this.firePoint = point;
     this.points.set(point.id, point);

@@ -24,7 +24,6 @@ import {
   WEAPONS,
   WEAPON_ORDER,
   WORLD,
-  type ObstacleDefinition,
   type SupplyDefinition,
   type WaveDefinition,
   type WavePhase,
@@ -59,6 +58,10 @@ import {
 } from './logic';
 import { SpatialHash } from './spatial';
 import { createGeneratedTextures, preloadGameAssets } from './textures';
+import { createArtFallbacks } from './art-fallbacks';
+import { createFacility } from './facility';
+import { OperativeVisual } from './operative-visual';
+import { ENEMY_ANIMATION, enemyStepTexture } from './visual-config';
 
 export interface HudData {
   health: number;
@@ -170,6 +173,7 @@ export class SwarmScene extends Phaser.Scene {
   private mission: MissionRuntime = createMission();
   private emergency: EmergencyRuntime = createEmergencyRuntime();
   private player!: Phaser.GameObjects.Sprite;
+  private playerVisual!: OperativeVisual;
   private crosshair!: Phaser.GameObjects.Image;
   private muzzle!: Phaser.GameObjects.Image;
   private objectiveMarker!: Phaser.GameObjects.Graphics;
@@ -219,6 +223,7 @@ export class SwarmScene extends Phaser.Scene {
 
   create(): void {
     createGeneratedTextures(this);
+    createArtFallbacks(this);
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.setBackgroundColor(0x080d12);
     this.drawFacility();
@@ -271,10 +276,9 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.lastAimDirection.set(1, 0);
-    this.player.setTexture(TEXTURES.characters[characterId])
-      .setDisplaySize(characterId === 'scout' ? 56 : 70, characterId === 'scout' ? 56 : 70)
-      .setPosition(WORLD.start.x, WORLD.start.y).setRotation(0).setAlpha(1).clearTint()
-      .setActive(true).setVisible(true);
+    this.player.setPosition(WORLD.start.x, WORLD.start.y).setRotation(0).setAlpha(0).clearTint()
+      .setActive(true).setVisible(false);
+    this.playerVisual.start(characterId);
     this.cameras.main.stopFollow();
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setDeadzone(150, 100);
@@ -304,6 +308,7 @@ export class SwarmScene extends Phaser.Scene {
     this.character = null;
     this.playerHealth = 0;
     this.player.setPosition(WORLD.start.x, WORLD.start.y).setActive(false).setVisible(false);
+    this.playerVisual.hide();
     this.cameras.main.stopFollow();
     this.crosshair.setVisible(false);
     this.objectiveArrow.setVisible(false);
@@ -396,6 +401,7 @@ export class SwarmScene extends Phaser.Scene {
     if (this.screen !== 'playing' || id === this.selectedWeapon) return;
     this.weapons[this.selectedWeapon] = cancelReload(this.weapons[this.selectedWeapon]);
     this.selectedWeapon = id;
+    this.playerVisual.setWeapon(id);
     this.triggerPressed = false;
     this.emitHud();
   }
@@ -462,6 +468,9 @@ export class SwarmScene extends Phaser.Scene {
         maxHealth: this.character?.maxHealth ?? 0,
       },
       selectedWeapon: inRun ? this.selectedWeapon : null,
+      visual: inRun ? this.playerVisual.getSnapshot() : {
+        pose: 'idle', weapon: null, shots: 0, muzzle: { x: WORLD.start.x, y: WORLD.start.y },
+      },
       weapons: inRun ? WEAPON_ORDER.map((id) => ({
         id,
         magazine: this.weapons[id].magazine,
@@ -538,7 +547,9 @@ export class SwarmScene extends Phaser.Scene {
 
   private createPlayer(): void {
     this.player = this.add.sprite(WORLD.start.x, WORLD.start.y, TEXTURES.characters.scout)
-      .setDisplaySize(56, 56).setDepth(20).setActive(false).setVisible(false);
+      .setActive(false).setVisible(false);
+    this.playerVisual = new OperativeVisual(this, WORLD.start.x, WORLD.start.y);
+    this.playerVisual.hide();
   }
 
   private createPools(): void {
@@ -597,8 +608,16 @@ export class SwarmScene extends Phaser.Scene {
     const normalizer = length > 1 ? length : 1;
     const speed = this.character.speed * this.lastDeltaSeconds;
     this.moveCircle(this.player, this.playerRadius, horizontal / normalizer * speed, vertical / normalizer * speed);
+    this.playerVisual.update({
+      x: this.player.x,
+      y: this.player.y,
+      aimAngle: this.player.rotation,
+      moveX: horizontal / normalizer,
+      moveY: vertical / normalizer,
+      timeMs: this.runTimeMs,
+    });
     if (this.playerFlashUntil > 0 && this.runTimeMs >= this.playerFlashUntil) {
-      this.player.clearTint();
+      this.playerVisual.clearFlash();
       this.playerFlashUntil = 0;
     }
   }
@@ -657,6 +676,7 @@ export class SwarmScene extends Phaser.Scene {
     this.nextShotAt[id] = this.runTimeMs + definition.fireIntervalMs;
     const shotId = this.nextShotId;
     this.nextShotId += 1;
+    this.playerVisual.fire(this.runTimeMs);
     for (let index = 0; index < slots.length; index += 1) {
       let offset: number;
       if (id === 'shotgun') {
@@ -668,9 +688,8 @@ export class SwarmScene extends Phaser.Scene {
       }
       this.spawnBullet(slots[index], id, this.player.rotation + offset, shotId);
     }
-    const cos = Math.cos(this.player.rotation);
-    const sin = Math.sin(this.player.rotation);
-    this.muzzle.setPosition(this.player.x + cos * 35, this.player.y + sin * 35)
+    const muzzle = this.playerVisual.muzzlePosition(this.player.rotation);
+    this.muzzle.setPosition(muzzle.x, muzzle.y)
       .setRotation(this.player.rotation)
       .setScale(id === 'rifle' ? 0.72 : id === 'shotgun' ? 1.2 : 1.45)
       .setTint(id === 'rifle' ? 0x82f5e5 : 0xf5b942).setVisible(true);
@@ -683,8 +702,9 @@ export class SwarmScene extends Phaser.Scene {
     const definition = WEAPONS[id];
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-    const x = this.player.x + cos * 35;
-    const y = this.player.y + sin * 35;
+    const muzzle = this.playerVisual.muzzlePosition(angle);
+    const x = muzzle.x;
+    const y = muzzle.y;
     slot.active = true;
     slot.weaponId = id;
     slot.shotId = shotId;
@@ -895,6 +915,12 @@ export class SwarmScene extends Phaser.Scene {
       );
       if (Math.abs(enemy.moveX) + Math.abs(enemy.moveY) > 1) {
         enemy.sprite.setRotation(Math.atan2(enemy.moveY, enemy.moveX));
+        const animation = ENEMY_ANIMATION[enemy.type];
+        const frame = Math.floor((this.runTimeMs + enemy.id * 37) / animation.frameMs) % 2;
+        const texture = frame === 0 ? TEXTURES.enemies[enemy.type] : enemyStepTexture(enemy.type);
+        if (enemy.sprite.texture.key !== texture) {
+          enemy.sprite.setTexture(texture).setDisplaySize(animation.size, animation.size);
+        }
       }
       enemy.sprite.setVisible(this.isWorldVisible(enemy.sprite.x, enemy.sprite.y, 100));
     }
@@ -972,7 +998,7 @@ export class SwarmScene extends Phaser.Scene {
       this.nextPlayerDamageAt = this.runTimeMs + COMBAT.playerInvulnerabilityMs;
       this.playerHealth = Math.max(0, this.playerHealth - definition.contactDamage);
       this.playerFlashUntil = this.runTimeMs + 100;
-      this.player.setTintFill(0xff5d64);
+      this.playerVisual.flash(0xff5d64);
       this.spawnParticles(this.player.x, this.player.y, 0xff5d64, 6, 105);
       this.audio.playHit();
       if (this.playerHealth <= 0) this.endRun('dead');
@@ -1044,7 +1070,7 @@ export class SwarmScene extends Phaser.Scene {
     slot.knockX = 0;
     slot.knockY = 0;
     slot.lastKnockbackEvent = -1;
-    const size = request.type === 'brute' ? 82 : request.type === 'skitter' ? 50 : 42;
+    const size = ENEMY_ANIMATION[request.type].size;
     slot.sprite.setTexture(TEXTURES.enemies[request.type]).setDisplaySize(size, size)
       .setPosition(point.x, point.y).setVisible(false);
     slot.warning.setPosition(point.x, point.y).setScale(definition.radius / 13).setVisible(true);
@@ -1139,6 +1165,7 @@ export class SwarmScene extends Phaser.Scene {
       reserve: this.weapons.rifle.reserve + COMBAT.emergencyRifleAmmo,
     };
     this.selectedWeapon = 'rifle';
+    this.playerVisual.setWeapon('rifle');
     this.triggerPressed = false;
     this.setNotice(`비상 탄약 +${COMBAT.emergencyRifleAmmo}`, 2400);
     this.audio.playSupply();
@@ -1173,7 +1200,7 @@ export class SwarmScene extends Phaser.Scene {
     this.objectiveDistance.setVisible(false);
     this.cameras.main.shakeEffect.reset();
     if (screen === 'dead') {
-      this.player.setAlpha(0.45).setTint(0x8b4357);
+      this.playerVisual.setDead(true);
       this.spawnCorpse(this.player.x, this.player.y);
     }
     this.callbacks.onScreen(this.screen);
@@ -1346,26 +1373,7 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private drawFacility(): void {
-    this.add.rectangle(WORLD.width / 2, WORLD.height / 2, WORLD.width, WORLD.height, 0x0b1218).setDepth(-20);
-    const floor = this.add.graphics().setDepth(-19);
-    floor.fillStyle(0x101b22, 1).fillRect(45, 45, 650, 650);
-    floor.fillStyle(0x101820, 1).fillRect(70, 1050, 610, 475);
-    floor.fillStyle(0x121e25, 1).fillRect(1600, 500, 600, 600);
-    floor.lineStyle(1, 0x1b2a31, 0.55);
-    for (let x = 0; x <= WORLD.width; x += 80) floor.lineBetween(x, 0, x, WORLD.height);
-    for (let y = 0; y <= WORLD.height; y += 80) floor.lineBetween(0, y, WORLD.width, y);
-    floor.lineStyle(10, 0x2a3b43, 1).strokeRect(5, 5, WORLD.width - 10, WORLD.height - 10);
-    floor.lineStyle(2, 0x39e6d0, 0.2).strokeRect(18, 18, WORLD.width - 36, WORLD.height - 36);
-    floor.fillStyle(0xf5b942, 0.13).fillRect(70, 80, 340, 10);
-    for (const obstacle of OBSTACLES) this.drawObstacle(obstacle);
-    const relay = this.add.graphics().setDepth(2);
-    relay.lineStyle(3, 0xf5b942, 0.7).strokeCircle(WORLD.infiltration.x, WORLD.infiltration.y, 32);
-    relay.lineStyle(2, 0x39e6d0, 0.55).strokeCircle(WORLD.infiltration.x, WORLD.infiltration.y, 19);
-    relay.fillStyle(0xf5b942, 0.75).fillTriangle(1900, 779, 1918, 814, 1882, 814);
-    this.add.text(240, 1070, '노을 정화소 // 의료 구역', this.worldTextStyle('#39e6d0')).setOrigin(0.5).setDepth(2);
-    this.add.text(240, 145, '북서 승강기 // NW', this.worldTextStyle('#a3b6b7')).setOrigin(0.5).setDepth(2);
-    this.add.text(1210, 1530, '검은 이슬 // 정화 구역 04', this.worldTextStyle('#4e6b70')).setOrigin(0.5).setDepth(2);
-    this.add.text(2090, 700, '중계기', this.worldTextStyle('#f5b942')).setOrigin(0.5).setDepth(2);
+    createFacility(this);
     this.objectiveMarker = this.add.graphics().setDepth(3);
     this.objectiveText = this.add.text(0, 0, '', {
       color: '#f5b942', fontFamily: 'monospace', fontSize: '17px', fontStyle: 'bold',
@@ -1377,30 +1385,6 @@ export class SwarmScene extends Phaser.Scene {
       color: '#f5b942', fontFamily: 'monospace', fontSize: '11px',
       backgroundColor: '#101820', padding: { x: 4, y: 3 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(110).setVisible(false);
-  }
-
-  private worldTextStyle(color: string): Phaser.Types.GameObjects.Text.TextStyle {
-    return { color, fontFamily: 'monospace', fontSize: '17px', letterSpacing: 2 };
-  }
-
-  private drawObstacle(obstacle: ObstacleDefinition): void {
-    const graphics = this.add.graphics().setDepth(2);
-    const left = obstacle.x - obstacle.width / 2;
-    const top = obstacle.y - obstacle.height / 2;
-    const colors = {
-      bed: { fill: 0x263a42, edge: 0x54747a },
-      wall: { fill: 0x243238, edge: 0x4c6064 },
-      console: { fill: 0x1d3035, edge: 0x3e6568 },
-    } as const;
-    const color = colors[obstacle.kind];
-    graphics.fillStyle(color.fill, 1).fillRect(left, top, obstacle.width, obstacle.height);
-    graphics.lineStyle(3, color.edge, 0.85).strokeRect(left, top, obstacle.width, obstacle.height);
-    if (obstacle.kind === 'bed') {
-      graphics.fillStyle(0x789497, 0.65).fillRect(left + 12, top + 12, 42, obstacle.height - 24);
-    } else if (obstacle.kind === 'console') {
-      graphics.fillStyle(0x39e6d0, 0.35);
-      for (let x = left + 16; x < left + obstacle.width - 12; x += 34) graphics.fillRect(x, top + 14, 19, 7);
-    }
   }
 
   private updateObjectiveMarker(): void {
@@ -1526,6 +1510,7 @@ export class SwarmScene extends Phaser.Scene {
     this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp, this);
     this.input.off(Phaser.Input.Events.GAME_OUT, this.handlePointerUp, this);
+    this.playerVisual.destroy();
     this.audio.close();
   }
 }

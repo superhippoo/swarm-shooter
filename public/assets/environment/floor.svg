@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" stroke-linecap="round" stroke-linejoin="round">
+  <title>Worn industrial deck panel</title>
+
+  <rect width="256" height="256" fill="#101a21"/>
+  <path d="M0 0H256V256H0Z" fill="none" stroke="#182930" stroke-width="2"/>
+  <path d="M4 4H252V252H4Z" fill="none" stroke="#132229"/>
+  <path d="M8 8H248M8 8V248" fill="none" stroke="#2b3a40" stroke-width="1" opacity=".45"/>
+  <path d="M14 248H248V14" fill="none" stroke="#070f15" stroke-width="2"/>
+  <path d="M128 4V16M128 240V252M4 128H16M240 128H252" stroke="#31434a" opacity=".45"/>
+  <path d="M32 186 76 182M34 190 57 188M182 54 215 51" stroke="#3c4b50" opacity=".22"/>
+  <path d="M164 222 183 218 193 221M48 68 57 65 65 67" fill="none" stroke="#080f14" stroke-width="2" opacity=".5"/>
+  <circle cx="12" cy="12" r="2.2" fill="#0a1419"/><circle cx="11.5" cy="11.4" r="1" fill="#43575e"/><circle cx="244" cy="12" r="2.2" fill="#0a1419"/><circle cx="243.5" cy="11.4" r="1" fill="#43575e"/><circle cx="12" cy="244" r="2.2" fill="#0a1419"/><circle cx="11.5" cy="243.4" r="1" fill="#43575e"/><circle cx="244" cy="244" r="2.2" fill="#0a1419"/><circle cx="243.5" cy="243.4" r="1" fill="#43575e"/>
+
+</svg>
