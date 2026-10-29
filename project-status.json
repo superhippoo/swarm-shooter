@@ -136,7 +136,7 @@
     "branch": "main",
     "commit": "HEAD",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "campaign-handoff:commit-pending"
+    "remoteSync": "campaign-handoff:pushed"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
