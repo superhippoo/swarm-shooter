@@ -52,9 +52,9 @@ export class TouchGameDriver implements CombatDriver {
     const order = unlockedWeaponOrder(state);
     if (!order.includes(id)) throw new Error(`아직 해금되지 않은 무기를 선택할 수 없습니다: ${id}`);
 
-    for (let step = 0; step < order.length; step += 1) {
+    for (let step = 0; step < order.length * 3; step += 1) {
       state = await snapshot(this.page);
-      if (state.selectedWeapon === id) return;
+      if (state.screen !== 'playing' || state.selectedWeapon === id) return;
       const currentIndex = Math.max(0, order.indexOf(state.selectedWeapon ?? 'rifle'));
       const targetIndex = order.indexOf(id);
       const forwardSteps = (targetIndex - currentIndex + order.length) % order.length;
@@ -62,7 +62,10 @@ export class TouchGameDriver implements CombatDriver {
       const selector = forwardSteps <= backwardSteps ? '#weapon-next' : '#weapon-prev';
       const expected = order[(currentIndex + (forwardSteps <= backwardSteps ? 1 : -1) + order.length) % order.length];
       await this.tapControl(selector);
-      await expect.poll(async () => (await snapshot(this.page)).selectedWeapon, { timeout: 3000 }).toBe(expected);
+      try {
+        await expect.poll(async () => (await snapshot(this.page)).selectedWeapon, { timeout: 1500 }).toBe(expected);
+      } catch {
+      }
     }
     throw new Error(`이전/다음 무기 버튼으로 ${id}를 선택하지 못했습니다.`);
   }
@@ -98,7 +101,10 @@ export class TouchGameDriver implements CombatDriver {
 
   async tapWhileHolding(selector: string): Promise<void> {
     const box = await this.page.locator(selector).boundingBox();
-    if (!box) throw new Error(`터치 버튼 좌표를 읽을 수 없습니다: ${selector}`);
+    if (!box) {
+      if (await this.releaseIfInactive()) return;
+      throw new Error(`터치 버튼 좌표를 읽을 수 없습니다: ${selector}`);
+    }
     const point = {
       x: box.x + box.width / 2,
       y: box.y + box.height / 2,

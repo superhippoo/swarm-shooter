@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { capturePage } from './artifacts';
-import { GameDriver, snapshot, waitForScreen } from './game-driver';
+import { GameDriver, snapshot, waitForEnemy, waitForScreen } from './game-driver';
 
 test('이동·사격·재장전·일시정지·현재 단계 재시작이 실제 입력으로 동작한다', async ({ page }) => {
   const pageErrors: string[] = [];
@@ -20,11 +20,12 @@ test('이동·사격·재장전·일시정지·현재 단계 재시작이 실제
   expect((await snapshot(page)).player.x).toBeGreaterThan(initial.player.x + 20);
 
   const driver = new GameDriver(page);
+  await waitForEnemy(page);
   await driver.aimAndFire();
+  await expect.poll(async () => (await snapshot(page)).performance.activeProjectiles).toBeGreaterThan(0);
   await page.waitForTimeout(450);
   const fired = await snapshot(page);
   expect(fired.weapons[0].magazine).toBeLessThan(30);
-  expect(fired.performance.activeProjectiles).toBeGreaterThan(0);
   await capturePage(page, 'vertical-slice-combat.png');
   await driver.stop();
 

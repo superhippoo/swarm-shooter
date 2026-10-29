@@ -118,7 +118,7 @@ export const WEAPONS: Record<WeaponId, WeaponDefinition> = {
     reserveAmmo: 16,
     fireIntervalMs: 1050,
     reloadMs: 2300,
-    damage: 180,
+    damage: 240,
     projectileSpeed: 0,
     range: 1100,
     pellets: 1,

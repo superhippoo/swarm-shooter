@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import type { CharacterId, GameScreen, WeaponId } from './shared/game-types';
-import { CHARACTERS, WEAPONS, WEAPON_ORDER } from './game/config';
+import { CHARACTERS, CAMPAIGN_WEAPON_ORDER, WEAPONS } from './game/config';
 import { SwarmScene, type HudData } from './game/SwarmScene';
 import { TouchControls } from './game/touch-controls';
 import { gameAssetUrl } from './game/textures';
@@ -69,7 +69,7 @@ app.innerHTML = `
         </div>
         <div class="ammo-panel">
           <div class="panel-label"><span id="current-weapon-name">RS-7 // AUTO</span><span id="kill-count">0 KILLS</span></div>
-          <div id="weapon-slots" class="weapon-slots" role="group" aria-label="무기 선택">${WEAPON_ORDER.map(weaponSlot).join('')}</div>
+          <div id="weapon-slots" class="weapon-slots" role="group" aria-label="무기 선택">${CAMPAIGN_WEAPON_ORDER.map(weaponSlot).join('')}</div>
           <div id="touch-weapon-switch" class="touch-weapon-switch" role="group" aria-label="무기 순환">
             <button id="weapon-prev" type="button" aria-label="이전 무기">◀</button>
             <strong id="touch-current-weapon">RS-7</strong>
@@ -205,21 +205,26 @@ function formatTime(ms: number): string {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-function renderStage(screen: GameScreen, data: HudData['campaign'], health: number, maxHealth: number): void {
+function renderStage(screen: GameScreen, data: HudData['campaign'] | null, health: number, maxHealth: number): void {
   stageScreen.hidden = screen !== 'stageIntro' && screen !== 'stageClear';
   if (!data) return;
   const stageNumber = String(data.stageIndex + 1).padStart(2, '0');
+  const finalStage = data.stageIndex === data.stageCount - 1;
   stagePanel.dataset.phase = screen;
   stageKicker.textContent = `STAGE ${stageNumber} ${screen === 'stageIntro' ? 'START' : 'CLEAR'}`;
   stageTitle.textContent = data.stageTitle;
   stageObjective.textContent = data.objectiveLabel;
-  stageReward.hidden = screen !== 'stageClear' || latestReward === null;
-  stageReward.textContent = latestReward ? `WEAPON UNLOCKED // ${WEAPONS[latestReward].name}` : '';
+  stageReward.hidden = false;
+  stageReward.textContent = latestReward
+    ? `${screen === 'stageIntro' ? 'NEXT UNLOCK' : 'WEAPON UNLOCKED'} // ${WEAPONS[latestReward].name}`
+    : screen === 'stageIntro'
+      ? (finalStage ? 'FINAL MISSION // Alpha 표식' : '전량 보급 · HP 회복')
+      : (finalStage ? 'ALL SECTORS SECURED' : '보급 완료');
   stageStats.textContent = screen === 'stageIntro'
     ? `${data.stageCount}개 구역 · ${data.unlockedWeapons.length}개 무기 사용 가능`
     : `${formatTime(data.stageElapsedMs)} · ${data.stageKills} KILLS · HP ${health} / ${maxHealth}`;
   stageContinueButton.hidden = screen !== 'stageClear';
-  stageContinueButton.textContent = data.stageIndex === data.stageCount - 1 ? 'MISSION COMPLETE' : 'NEXT STAGE';
+  stageContinueButton.textContent = finalStage ? 'MISSION COMPLETE' : 'NEXT STAGE';
 }
 
 function updateScreen(screen: GameScreen): void {
@@ -258,7 +263,7 @@ function updateHud(data: HudData): void {
   reserveText.textContent = String(selected.reserve).padStart(3, '0');
   byId<HTMLElement>('current-weapon-name').textContent = `${WEAPONS[data.selectedWeapon].name} // ${WEAPONS[data.selectedWeapon].automatic ? 'AUTO' : 'SEMI'}`;
   byId<HTMLElement>('touch-current-weapon').textContent = WEAPON_SHORT_NAMES[data.selectedWeapon];
-  for (const id of WEAPON_ORDER) {
+  for (const id of CAMPAIGN_WEAPON_ORDER) {
     const weapon = data.weapons.find((candidate) => candidate.id === id);
     const unlocked = data.campaign.unlockedWeapons.includes(id);
     const button = byId<HTMLButtonElement>(`weapon-${id}`);
@@ -358,12 +363,12 @@ for (const button of characterButtons) {
 for (const button of weaponButtons) {
   bindTouchAction(button, () => {
     const id = button.dataset.weapon;
-    if (id && (WEAPON_ORDER as readonly string[]).includes(id)) scene.selectWeapon(id as WeaponId);
+    if (id && (CAMPAIGN_WEAPON_ORDER as readonly string[]).includes(id)) scene.selectWeapon(id as WeaponId);
   });
 }
 bindTouchAction(byId<HTMLButtonElement>('weapon-prev'), () => scene.cycleWeapon(-1));
 bindTouchAction(byId<HTMLButtonElement>('weapon-next'), () => scene.cycleWeapon(1));
-bindTouchAction(stageContinueButton, () => scene.continueCampaign());
+stageContinueButton.addEventListener('click', () => scene.continueCampaign(), { signal: uiEvents.signal });
 bindTouchAction(byId<HTMLButtonElement>('pause-button'), () => scene.pauseRun());
 bindTouchAction(byId<HTMLButtonElement>('resume-button'), () => scene.resumeRun());
 byId<HTMLButtonElement>('pause-restart-button').addEventListener('click', () => scene.restartRun(), { signal: uiEvents.signal });

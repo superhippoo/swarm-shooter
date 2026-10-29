@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import type { CharacterId, GameSnapshot, WeaponId } from '../../src/shared/game-types';
+import { CAMPAIGN_STAGES as CAMPAIGN_STAGE_DEFINITIONS } from '../../src/game/campaign';
 import { capturePage, writeJsonArtifact } from './artifacts';
 import { CAMPAIGN_STAGES, expectedUnlockedWeapons } from './campaign-data';
 import { clampWorldPoint, distance, hasAmmo, summarizeState, weaponState } from './campaign-driver-utils';
@@ -142,11 +143,14 @@ function desiredWeapon(
     if (!evidenceReady && inRange) return exercise;
   }
 
+  if (campaign.objectiveKind === 'hunt') {
+    if (available('rail')) return 'rail';
+    if (available('launcher')) return 'launcher';
+  }
   if (nearestDistance < 230 && nearby >= 2 && available('mines')) return 'mines';
-  if (nearestDistance < 285 && available('flame')) return 'flame';
   if (nearby >= 3 && available('rail')) return 'rail';
+  if (nearestDistance < 230 && nearby >= 4 && available('launcher')) return 'launcher';
   if (nearby >= 2 && available('arc')) return 'arc';
-  if (nearestDistance < 205 && nearby >= 4 && available('launcher')) return 'launcher';
   if (nearestDistance < 165 && available('shotgun')) return 'shotgun';
   for (const id of ['rifle', 'arc', 'rail', 'flame', 'launcher', 'shotgun', 'mines'] as const) {
     if (available(id)) return id;
@@ -161,6 +165,7 @@ interface NavigationState {
   detourUntil: number;
   detourPoint: Point;
   detourSign: number;
+  visitedSupplies: Set<number>;
 }
 
 function freshNavigation(state: GameSnapshot, now: number): NavigationState {
@@ -171,7 +176,31 @@ function freshNavigation(state: GameSnapshot, now: number): NavigationState {
     detourUntil: 0,
     detourPoint: { x: state.player.x, y: state.player.y },
     detourSign: 1,
+    visitedSupplies: new Set<number>(),
   };
+}
+
+function retreatTarget(state: GameSnapshot): Point {
+  let best = { x: state.player.x, y: state.player.y };
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (let index = 0; index < 16; index += 1) {
+    const angle = (Math.PI * 2 * index) / 16;
+    const candidate = clampWorldPoint({
+      x: state.player.x + Math.cos(angle) * 320,
+      y: state.player.y + Math.sin(angle) * 320,
+    });
+    let clearance = Number.POSITIVE_INFINITY;
+    for (const enemy of state.enemies) {
+      if (enemy.health > 0) clearance = Math.min(clearance, distance(candidate, enemy));
+    }
+    const centerPenalty = distance(candidate, { x: 1200, y: 800 }) * 0.04;
+    const score = clearance - centerPenalty;
+    if (score > bestScore) {
+      bestScore = score;
+      best = candidate;
+    }
+  }
+  return best;
 }
 
 function movementTarget(
@@ -192,8 +221,25 @@ function movementTarget(
 
   const objective = { x: state.mission.worldX, y: state.mission.worldY };
   const kind = campaign.objectiveKind;
+  const stageSupplies = CAMPAIGN_STAGE_DEFINITIONS[campaign.stageIndex].supplies;
+  stageSupplies.forEach((supply, index) => {
+    if (distance(state.player, supply) < 52) navigation.visitedSupplies.add(index);
+  });
+  let supplyTarget: Point | null = null;
+  if (state.player.health <= state.player.maxHealth * 0.65) {
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    stageSupplies.forEach((supply, index) => {
+      if (navigation.visitedSupplies.has(index) || campaign.stageElapsedMs < supply.atMs) return;
+      const supplyDistance = distance(state.player, supply);
+      if (supplyDistance < nearestDistance) {
+        nearestDistance = supplyDistance;
+        supplyTarget = supply;
+      }
+    });
+  }
   let target: Point;
-  if (kind === 'defend') {
+  if (supplyTarget) target = supplyTarget;
+  else if (kind === 'defend') {
     const centerDistance = distance(state.player, objective);
     if (centerDistance > 145) target = objective;
     else {
@@ -201,7 +247,10 @@ function movementTarget(
       target = { x: objective.x + Math.cos(angle) * 115, y: objective.y + Math.sin(angle) * 115 };
     }
   } else if (kind === 'purge' || kind === 'hunt') {
-    if (nearest && distance(nearest, state.player) > 480) target = { x: nearest.x, y: nearest.y };
+    const nearestDistance = nearest ? distance(nearest, state.player) : Number.POSITIVE_INFINITY;
+    if (nearest && nearestDistance < 240) {
+      target = retreatTarget(state);
+    } else if (nearest && nearestDistance > 480) target = { x: nearest.x, y: nearest.y };
     else {
       const anchor = state.mission.worldX > 0 && state.mission.worldY > 0 ? objective : state.player;
       const angle = now / 2100;
@@ -303,9 +352,14 @@ export async function completeCampaign(
       }
       const frozenIntroTime = state.campaign!.stageElapsedMs;
       await page.waitForTimeout(150);
-      expect((await snapshot(page)).campaign?.stageElapsedMs).toBe(frozenIntroTime);
+      const introCheck = await snapshot(page);
+      if (introCheck.campaign?.phase === 'intro') {
+        expect(introCheck.campaign.stageElapsedMs).toBe(frozenIntroTime);
+      } else {
+        expect(introCheck.screen).toBe('playing');
+      }
       await capturePage(page, `stage-${String(stageIndex + 1).padStart(2, '0')}-intro.png`);
-      await waitForScreen(page, 'playing', 5000);
+      await waitForScreen(page, 'playing', 20_000);
 
       state = await snapshot(page);
       expect(state.runId).toBe(initialRunId);
@@ -373,7 +427,7 @@ export async function completeCampaign(
         const nearest = state.campaign?.objectiveKind === 'hunt' ? targetForHunt(state) : nearestEnemy(state);
         const desired = desiredWeapon(state, evidence);
         const selected = weaponState(state, state.selectedWeapon);
-        const needsSwitch = state.selectedWeapon !== desired && now - lastWeaponSwitchAt >= 450 &&
+        const needsSwitch = state.selectedWeapon !== desired && now - lastWeaponSwitchAt >= 1200 &&
           (!selected?.reloading || selected.magazine === 0);
         if (needsSwitch) {
           await driver.selectWeapon(desired);

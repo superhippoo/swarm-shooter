@@ -1,8 +1,12 @@
 import Phaser from 'phaser';
 import type {
+  CampaignSnapshot,
+  CampaignSupplyDefinition,
+  CampaignWaveDefinition,
   CharacterDefinition,
   CharacterId,
   EnemyId,
+  EnemyRank,
   GameScreen,
   GameSnapshot,
   MissionPhase,
@@ -10,38 +14,47 @@ import type {
   WeaponSnapshot,
 } from '../shared/game-types';
 import { ProceduralAudio } from './audio';
+import { CAMPAIGN_LAYOUTS } from './campaign';
 import {
+  advanceCampaign,
+  alphaThresholdCrossings,
+  campaignSnapshot,
+  continueCampaign as continueCampaignLogic,
+  createCampaign,
+  currentObjective,
+  currentStage,
+  getCampaignObjective,
+  registerEnemyKill,
+  registerEnemySpawn,
+  registerMultiKill,
+  registerWaveQueued,
+  retryCampaign,
+  stageDifficulty,
+  waveIsActiveForObjective,
+  type CampaignRuntime,
+  type WaveOwnership,
+} from './campaign-logic';import {
+  CAMPAIGN_WEAPON_ORDER,
   CHARACTERS,
   COMBAT,
   ENEMIES,
   LIMITS,
-  MISSION,
-  OBSTACLES,
   SPAWN_POINTS,
-  SUPPLIES,
   TEXTURES,
-  WAVES,
   WEAPONS,
-  WEAPON_ORDER,
   WORLD,
-  type SupplyDefinition,
-  type WaveDefinition,
-  type WavePhase,
+  type ObstacleDefinition,
 } from './config';
 import {
   actualReloadMs,
-  advanceMission,
   applySupply,
   canFireWeapon,
   cancelReload,
   consumeRound,
   createEmergencyRuntime,
-  createMission,
   createWeaponCollection,
   distanceBetween,
   explosionDamage,
-  getMissionObjective,
-  isDefenseZoneActive,
   isWithinRange,
   massScale,
   reloadProgress,
@@ -53,15 +66,26 @@ import {
   totalAmmo,
   updateEmergency,
   type EmergencyRuntime,
-  type MissionRuntime,
   type WeaponCollection,
 } from './logic';
 import { SpatialHash } from './spatial';
 import { createGeneratedTextures, preloadGameAssets } from './textures';
 import { createArtFallbacks } from './art-fallbacks';
-import { createFacility } from './facility';
+import { createFacility, type FacilityHandle } from './facility';
 import { OperativeVisual } from './operative-visual';
-import { ENEMY_ANIMATION, enemyStepTexture } from './visual-config';
+import { CAMPAIGN_TEXTURES, ENEMY_ANIMATION, enemyStepTexture } from './visual-config';
+import {
+  chainDamage,
+  coneTargets,
+  createMine,
+  hasLineOfSight,
+  placeMine,
+  railTrajectory,
+  selectChainTargets,
+  updateMines,
+  type CombatTarget,
+  type MineState,
+} from './weapon-behaviors';
 
 export interface HudData {
   health: number;
@@ -75,6 +99,8 @@ export interface HudData {
   missionPhase: MissionPhase;
   kills: number;
   notice: string;
+  campaign: CampaignSnapshot;
+  reward: WeaponId | null;
 }
 
 export interface SwarmSceneCallbacks {
@@ -100,10 +126,15 @@ interface BulletSlot {
 interface EnemySlot {
   id: number;
   type: EnemyId;
+  rank: EnemyRank;
   state: EnemyState;
   sprite: Phaser.GameObjects.Sprite;
   warning: Phaser.GameObjects.Image;
   health: number;
+  maxHealth: number;
+  speedMultiplier: number;
+  damageMultiplier: number;
+  ownership: WaveOwnership | null;
   activateAt: number;
   nextAttackAt: number;
   nextAiAt: number;
@@ -137,7 +168,7 @@ interface CorpseSlot {
 }
 
 interface SupplySlot {
-  definition: SupplyDefinition;
+  definition: CampaignSupplyDefinition;
   image: Phaser.GameObjects.Image;
   unlocked: boolean;
   active: boolean;
@@ -145,14 +176,61 @@ interface SupplySlot {
 
 interface SpawnRequest {
   type: EnemyId;
-  phase: WavePhase;
+  rank: EnemyRank;
   direction: 'forward' | 'rear' | null;
+  ownership: WaveOwnership;
 }
 
 interface BulletCollision {
   time: number;
   enemy: EnemySlot | null;
 }
+
+interface BeamEffect {
+  kind: 'chain' | 'rail' | 'flame';
+  points: Phaser.Math.Vector2[];
+  angle: number;
+  range: number;
+  arc: number;
+  until: number;
+}
+
+interface PickupSlot {
+  image: Phaser.GameObjects.Image;
+  pointIndex: number;
+}
+
+const MUZZLE_COLORS: Record<WeaponId, number> = {
+  rifle: 0x82f5e5,
+  shotgun: 0xf5b942,
+  launcher: 0xff5d64,
+  arc: 0xa8fff4,
+  rail: 0xd9a7ff,
+  flame: 0xffa14d,
+  mines: 0xf5b942,
+};
+
+const MUZZLE_SCALES: Record<WeaponId, number> = {
+  rifle: 0.72,
+  shotgun: 1.2,
+  launcher: 1.45,
+  arc: 1,
+  rail: 1.5,
+  flame: 0.9,
+  mines: 0.8,
+};
+
+const MUZZLE_DURATIONS: Record<WeaponId, number> = {
+  rifle: 42,
+  shotgun: 72,
+  launcher: 90,
+  arc: 70,
+  rail: 110,
+  flame: 40,
+  mines: 60,
+};
+
+const MULTI_KILL_TIERS = [5, 10, 20] as const;
 
 export class SwarmScene extends Phaser.Scene {
   private readonly callbacks: SwarmSceneCallbacks;
@@ -169,8 +247,10 @@ export class SwarmScene extends Phaser.Scene {
   private character: CharacterDefinition | null = null;
   private weapons: WeaponCollection = createWeaponCollection(CHARACTERS.scout);
   private selectedWeapon: WeaponId = 'rifle';
-  private nextShotAt: Record<WeaponId, number> = { rifle: 0, shotgun: 0, launcher: 0 };
-  private mission: MissionRuntime = createMission();
+  private nextShotAt: Record<WeaponId, number> = {
+    rifle: 0, shotgun: 0, launcher: 0, arc: 0, rail: 0, flame: 0, mines: 0,
+  };
+  private campaign: CampaignRuntime | null = null;
   private emergency: EmergencyRuntime = createEmergencyRuntime();
   private player!: Phaser.GameObjects.Sprite;
   private playerVisual!: OperativeVisual;
@@ -180,11 +260,19 @@ export class SwarmScene extends Phaser.Scene {
   private objectiveText!: Phaser.GameObjects.Text;
   private objectiveArrow!: Phaser.GameObjects.Image;
   private objectiveDistance!: Phaser.GameObjects.Text;
+  private beamLayer!: Phaser.GameObjects.Graphics;
+  private facility: FacilityHandle | null = null;
+  private stageObstacles: readonly ObstacleDefinition[] = CAMPAIGN_LAYOUTS.medbay.obstacles;
   private bullets: BulletSlot[] = [];
   private enemies: EnemySlot[] = [];
   private particles: ParticleSlot[] = [];
   private corpses: CorpseSlot[] = [];
   private supplies: SupplySlot[] = [];
+  private pickups: PickupSlot[] = [];
+  private mineImages: Phaser.GameObjects.Image[] = [];
+  private mines: MineState[] = [];
+  private nextMineId = 1;
+  private beamEffects: BeamEffect[] = [];
   private spawnQueue: SpawnRequest[] = [];
   private triggeredWaves = new Set<string>();
   private ready = false;
@@ -210,6 +298,8 @@ export class SwarmScene extends Phaser.Scene {
   private noticeUntil = 0;
   private shakeUntil = 0;
   private shakeIntensity = 0;
+  private recentKillAt: number[] = [];
+  private lastReward: WeaponId | null = null;
   private readonly playerRadius = 16;
 
   constructor(callbacks: SwarmSceneCallbacks) {
@@ -226,9 +316,11 @@ export class SwarmScene extends Phaser.Scene {
     createArtFallbacks(this);
     this.cameras.main.setBounds(0, 0, WORLD.width, WORLD.height);
     this.cameras.main.setBackgroundColor(0x080d12);
-    this.drawFacility();
+    this.facility = createFacility(this, CAMPAIGN_LAYOUTS.medbay);
     this.createPools();
     this.createPlayer();
+    this.drawFacility();
+    this.beamLayer = this.add.graphics().setDepth(26);
     this.crosshair = this.add.image(WORLD.start.x, WORLD.start.y, TEXTURES.crosshair)
       .setDisplaySize(38, 38).setDepth(100).setVisible(false);
     this.muzzle = this.add.image(0, 0, TEXTURES.muzzle)
@@ -247,17 +339,51 @@ export class SwarmScene extends Phaser.Scene {
   startRun(characterId: CharacterId): void {
     if (!this.ready) return;
     this.audio.unlock();
-    this.resetPools();
     this.character = CHARACTERS[characterId];
+    this.campaign = createCampaign();
+    this.loadStage(this.campaign, true);
+  }
+
+  restartRun(): void {
+    if (!this.ready || !this.character) return;
+    this.audio.unlock();
+    if (!this.campaign || this.campaign.phase === 'complete') {
+      this.startRun(this.character.id);
+      return;
+    }
+    this.campaign = retryCampaign(this.campaign);
+    this.loadStage(this.campaign, true);
+  }
+
+  continueCampaign(): void {
+    if (!this.ready || !this.character || !this.campaign || this.screen !== 'stageClear') return;
+    this.audio.unlock();
+    const next = continueCampaignLogic(this.campaign);
+    this.campaign = next;
+    if (next.phase === 'complete') {
+      this.audio.playStageClear();
+      this.endRun('victory');
+      return;
+    }
+    this.loadStage(next, false);
+  }
+
+  private loadStage(campaign: CampaignRuntime, resetRunId: boolean): void {
+    if (!this.character) return;
+    const stage = currentStage(campaign);
+    if (resetRunId) {
+      this.runId += 1;
+      this.randomSeed = (this.runId * 2_654_435_761) >>> 0;
+    }
+    this.resetPools();
     this.weapons = createWeaponCollection(this.character);
     this.selectedWeapon = 'rifle';
-    this.nextShotAt = { rifle: 0, shotgun: 0, launcher: 0 };
-    this.mission = createMission();
+    for (const id of CAMPAIGN_WEAPON_ORDER) this.nextShotAt[id] = 0;
     this.emergency = createEmergencyRuntime();
-    this.runId += 1;
-    this.randomSeed = (this.runId * 2_654_435_761) >>> 0;
-    this.tick = 0;
-    this.runTimeMs = 0;
+    this.mines = [];
+    this.nextMineId = 1;
+    this.beamEffects = [];
+    this.recentKillAt = [];
     this.playerHealth = this.character.maxHealth;
     this.kills = 0;
     this.nextEnemyId = 1;
@@ -269,6 +395,8 @@ export class SwarmScene extends Phaser.Scene {
     this.nextHudAt = 0;
     this.nextObjectiveAt = 0;
     this.objectiveLabel = '';
+    this.notice = '';
+    this.noticeUntil = 0;
     this.shakeUntil = 0;
     this.shakeIntensity = 0;
     this.pressedKeys.clear();
@@ -276,26 +404,35 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.lastAimDirection.set(1, 0);
-    this.player.setPosition(WORLD.start.x, WORLD.start.y).setRotation(0).setAlpha(0).clearTint()
+
+    this.facility?.destroy();
+    const layout = CAMPAIGN_LAYOUTS[stage.layoutId];
+    this.stageObstacles = layout.obstacles;
+    this.facility = createFacility(this, layout);
+
+    this.player.setPosition(stage.playerStart.x, stage.playerStart.y).setRotation(0).setAlpha(0).clearTint()
       .setActive(true).setVisible(false);
-    this.playerVisual.start(characterId);
+    this.playerVisual.start(this.character.id);
     this.cameras.main.stopFollow();
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
     this.cameras.main.setDeadzone(150, 100);
-    this.cameras.main.centerOn(WORLD.start.x, WORLD.start.y);
+    this.cameras.main.centerOn(stage.playerStart.x, stage.playerStart.y);
     this.crosshair.setVisible(true);
-    this.screen = 'playing';
-    this.setNotice(`검은 이슬 — ${this.character.name}, 중계기를 깨우세요`, 2800);
-    this.processWaveTriggers();
-    this.processSpawnQueue();
-    this.updateSupplies();
+
+    this.supplies = stage.supplies.map((definition) => {
+      const image = this.add.image(definition.x, definition.y, TEXTURES.supply)
+        .setDepth(5).setVisible(false);
+      return { definition, image, unlocked: false, active: false };
+    });
+
+    this.screen = 'stageIntro';
+    this.lastReward = stage.unlock ?? null;
+    this.audio.playStageStart();
+    this.setNotice(`${stage.title} — ${currentObjective(campaign).label}`, 2800);
+    this.refreshPickups();
     this.updateObjectiveMarker();
     this.callbacks.onScreen(this.screen);
     this.emitHud();
-  }
-
-  restartRun(): void {
-    if (this.character) this.startRun(this.character.id);
   }
 
   returnToMenu(): void {
@@ -306,7 +443,13 @@ export class SwarmScene extends Phaser.Scene {
     this.firingHeld = false;
     this.triggerPressed = false;
     this.character = null;
+    this.campaign = null;
     this.playerHealth = 0;
+    this.mines = [];
+    this.beamEffects = [];
+    this.facility?.destroy();
+    this.stageObstacles = CAMPAIGN_LAYOUTS.medbay.obstacles;
+    this.facility = createFacility(this, CAMPAIGN_LAYOUTS.medbay);
     this.player.setPosition(WORLD.start.x, WORLD.start.y).setActive(false).setVisible(false);
     this.playerVisual.hide();
     this.cameras.main.stopFollow();
@@ -314,7 +457,6 @@ export class SwarmScene extends Phaser.Scene {
     this.objectiveArrow.setVisible(false);
     this.objectiveDistance.setVisible(false);
     this.screen = 'menu';
-    this.mission = createMission();
     this.audio.pause();
     this.updateObjectiveMarker();
     this.callbacks.onScreen(this.screen);
@@ -399,6 +541,7 @@ export class SwarmScene extends Phaser.Scene {
 
   selectWeapon(id: WeaponId): void {
     if (this.screen !== 'playing' || id === this.selectedWeapon) return;
+    if (this.campaign && !this.campaign.unlockedWeapons.includes(id)) return;
     this.weapons[this.selectedWeapon] = cancelReload(this.weapons[this.selectedWeapon]);
     this.selectedWeapon = id;
     this.playerVisual.setWeapon(id);
@@ -407,9 +550,13 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   cycleWeapon(direction: number): void {
-    const current = WEAPON_ORDER.indexOf(this.selectedWeapon);
-    const next = (current + (direction > 0 ? 1 : -1) + WEAPON_ORDER.length) % WEAPON_ORDER.length;
-    this.selectWeapon(WEAPON_ORDER[next]);
+    const unlocked = this.campaign
+      ? CAMPAIGN_WEAPON_ORDER.filter((id) => this.campaign!.unlockedWeapons.includes(id))
+      : [...CAMPAIGN_WEAPON_ORDER];
+    if (unlocked.length === 0) return;
+    const current = Math.max(0, unlocked.indexOf(this.selectedWeapon));
+    const next = (current + (direction > 0 ? 1 : -1) + unlocked.length) % unlocked.length;
+    this.selectWeapon(unlocked[next]);
   }
 
   setShakeEnabled(enabled: boolean): void {
@@ -440,14 +587,17 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   getSnapshot(): GameSnapshot {
-    const inRun = this.screen !== 'menu' && this.character !== null;
+    const inRun = this.screen !== 'menu' && this.character !== null && this.campaign !== null;
     const observer = this.ready ? this.player : WORLD.start;
-    const objective = getMissionObjective(this.mission, observer);
+    const campaignSnap = inRun && this.campaign ? campaignSnapshot(this.campaign, this.mines.length) : null;
+    const objective = inRun && this.campaign
+      ? getCampaignObjective(this.campaign, observer)
+      : { label: '작전 캐릭터 선택', progress: 0, target: 0, worldX: WORLD.infiltration.x, worldY: WORLD.infiltration.y };
     const objectiveScreen = this.ready
       ? this.worldToScreen(objective.worldX, objective.worldY)
       : { x: 0, y: 0 };
     const activeEnemies = this.enemies.filter((enemy) => enemy.state === 'active');
-    const reportedEnemies = activeEnemies;
+    const unlocked = this.campaign?.unlockedWeapons ?? CAMPAIGN_WEAPON_ORDER;
     const fps = this.ready ? this.game.loop.actualFps : 0;
     return {
       screen: this.screen,
@@ -471,14 +621,16 @@ export class SwarmScene extends Phaser.Scene {
       visual: inRun ? this.playerVisual.getSnapshot() : {
         pose: 'idle', weapon: null, shots: 0, muzzle: { x: WORLD.start.x, y: WORLD.start.y },
       },
-      weapons: inRun ? WEAPON_ORDER.map((id) => ({
-        id,
-        magazine: this.weapons[id].magazine,
-        reserve: this.weapons[id].reserve,
-        reloading: this.weapons[id].reloading,
-      })) : [],
+      weapons: inRun
+        ? unlocked.map((id) => ({
+          id,
+          magazine: this.weapons[id].magazine,
+          reserve: this.weapons[id].reserve,
+          reloading: this.weapons[id].reloading,
+        }))
+        : [],
       mission: {
-        phase: inRun ? this.mission.phase : null,
+        phase: inRun && this.campaign ? this.snapshotMissionPhase(currentObjective(this.campaign).kind) : null,
         label: inRun ? objective.label : '작전 캐릭터 선택',
         progress: inRun ? objective.progress : 0,
         target: inRun ? objective.target : 0,
@@ -487,11 +639,13 @@ export class SwarmScene extends Phaser.Scene {
         screenX: this.round(objectiveScreen.x),
         screenY: this.round(objectiveScreen.y),
       },
-      enemies: reportedEnemies.map((enemy) => {
+      campaign: campaignSnap,
+      enemies: activeEnemies.map((enemy) => {
         const screen = this.worldToScreen(enemy.sprite.x, enemy.sprite.y);
         return {
           id: enemy.id,
           type: enemy.type,
+          rank: enemy.rank,
           x: this.round(enemy.sprite.x),
           y: this.round(enemy.sprite.y),
           screenX: this.round(screen.x),
@@ -508,24 +662,59 @@ export class SwarmScene extends Phaser.Scene {
     };
   }
 
+  private snapshotMissionPhase(kind: CampaignSnapshot['objectiveKind']): MissionPhase {
+    switch (kind) {
+      case 'reach':
+      case 'collect':
+        return 'infiltrate';
+      case 'defend':
+      case 'purge':
+      case 'hunt':
+        return 'defend';
+      case 'extract':
+        return 'extract';
+    }
+  }
+
   update(_time: number, delta: number): void {
-    if (!this.ready || this.screen !== 'playing' || !this.character) return;
+    if (!this.ready || !this.character || !this.campaign) return;
     const deltaMs = Math.min(50, Math.max(0, delta));
+
+    if (this.screen === 'stageIntro') {
+      this.campaign = advanceCampaign(this.campaign, this.player, deltaMs);
+      if (this.campaign.phase === 'combat') {
+        this.screen = 'playing';
+        this.processWaveTriggers();
+        this.processSpawnQueue();
+        this.callbacks.onScreen(this.screen);
+        this.emitHud();
+      }
+      return;
+    }
+    if (this.screen !== 'playing') return;
+
     this.runTimeMs += deltaMs;
     this.tick += 1;
-    for (const id of WEAPON_ORDER) {
+    for (const id of CAMPAIGN_WEAPON_ORDER) {
       this.weapons[id] = settleReload(this.weapons[id], WEAPONS[id].magazineSize, this.runTimeMs);
     }
     this.updatePlayer();
-    const previousPhase = this.mission.phase;
-    this.mission = advanceMission(this.mission, this.player, deltaMs);
-    if (this.mission.phase !== previousPhase) this.handleMissionTransition(previousPhase);
+    const previousObjectiveId = currentObjective(this.campaign).id;
+    this.campaign = advanceCampaign(this.campaign, this.player, deltaMs);
+    if (this.campaign.phase === 'clear') {
+      this.handleStageClear();
+      return;
+    }
+    if (currentObjective(this.campaign).id !== previousObjectiveId) {
+      this.handleObjectiveTransition(previousObjectiveId);
+    }
     if (this.screen !== 'playing') return;
     this.activateSpawnedEnemies();
     this.processWaveTriggers();
     this.processSpawnQueue();
     this.updateEnemies(deltaMs);
     this.rebuildEnemyHash();
+    this.updateMines(deltaMs);
     this.updateWeapon();
     this.updateBullets(deltaMs);
     this.handlePlayerContacts();
@@ -536,6 +725,7 @@ export class SwarmScene extends Phaser.Scene {
     this.updateCorpses(deltaMs);
     this.updateTransientEffects();
     if (this.runTimeMs >= this.nextObjectiveAt) {
+      this.refreshPickups();
       this.updateObjectiveMarker();
       this.nextObjectiveAt = this.runTimeMs + 80;
     }
@@ -543,6 +733,34 @@ export class SwarmScene extends Phaser.Scene {
       this.emitHud();
       this.nextHudAt = this.runTimeMs + 80;
     }
+  }
+
+  private handleStageClear(): void {
+    this.spawnQueue.length = 0;
+    this.firingHeld = false;
+    this.triggerPressed = false;
+    this.pressedKeys.clear();
+    this.resetTouchInput();
+    this.crosshair.setVisible(false);
+    this.cameras.main.shakeEffect.reset();
+    this.audio.playStageClear();
+    if (this.lastReward) this.audio.playUnlock();
+    this.screen = 'stageClear';
+    this.callbacks.onScreen(this.screen);
+    this.emitHud();
+  }
+
+  private handleObjectiveTransition(previousObjectiveId: string): void {
+    const stage = currentStage(this.campaign!);
+    for (const wave of stage.waves) {
+      if (wave.objectiveId !== previousObjectiveId || this.triggeredWaves.has(wave.id)) continue;
+      this.triggerWave(wave);
+    }
+    this.refreshPickups();
+    this.updateObjectiveMarker();
+    const objective = currentObjective(this.campaign!);
+    this.setNotice(objective.label, 2600);
+    this.audio.playMission();
   }
 
   private createPlayer(): void {
@@ -569,7 +787,8 @@ export class SwarmScene extends Phaser.Scene {
       const warning = this.add.image(-100, -100, TEXTURES.spawnWarning)
         .setDepth(11).setVisible(false);
       this.enemies.push({
-        id: 0, type: 'swarmer', state: 'inactive', sprite, warning, health: 0,
+        id: 0, type: 'swarmer', rank: 'normal', state: 'inactive', sprite, warning,
+        health: 0, maxHealth: 0, speedMultiplier: 1, damageMultiplier: 1, ownership: null,
         activateAt: 0, nextAttackAt: 0, nextAiAt: 0, nextStrafeAt: 0,
         strafeSign: index % 2 === 0 ? 1 : -1, flashUntil: 0,
         moveX: 0, moveY: 0, knockX: 0, knockY: 0,
@@ -588,10 +807,15 @@ export class SwarmScene extends Phaser.Scene {
       const image = this.add.image(-100, -100, TEXTURES.corpse).setDepth(1).setVisible(false);
       this.corpses.push({ image, active: false, remainingMs: 0, bornAt: 0 });
     }
-    for (const definition of SUPPLIES) {
-      const image = this.add.image(definition.x, definition.y, TEXTURES.supply)
-        .setDepth(5).setVisible(false);
-      this.supplies.push({ definition, image, unlocked: false, active: false });
+    for (let index = 0; index < LIMITS.objectivePickups; index += 1) {
+      const image = this.add.image(-100, -100, CAMPAIGN_TEXTURES.effects.coolant)
+        .setDepth(6).setVisible(false);
+      this.pickups.push({ image, pointIndex: -1 });
+    }
+    for (let index = 0; index < LIMITS.mines; index += 1) {
+      const image = this.add.image(-100, -100, CAMPAIGN_TEXTURES.effects.mine)
+        .setDepth(9).setVisible(false);
+      this.mineImages.push(image);
     }
   }
 
@@ -624,11 +848,21 @@ export class SwarmScene extends Phaser.Scene {
 
   private updateAim(): void {
     if (this.touchControlsEnabled) {
-      const candidates = this.enemies
+      let candidates = this.enemies
         .filter((enemy) => enemy.state === 'active' &&
           this.isWorldVisible(enemy.sprite.x, enemy.sprite.y, ENEMIES[enemy.type].radius))
-        .map((enemy) => ({ id: enemy.id, x: enemy.sprite.x, y: enemy.sprite.y }));
-      const target = selectAutoAimTarget(this.player, candidates, OBSTACLES);
+        .map((enemy) => ({ id: enemy.id, x: enemy.sprite.x, y: enemy.sprite.y, rank: enemy.rank }));
+      if (this.campaign?.phase === 'combat') {
+        const objective = currentObjective(this.campaign);
+        if (objective.kind === 'hunt') {
+          const marked = candidates.filter((candidate) => candidate.rank === objective.rank);
+          if (marked.length > 0) candidates = marked;
+        }
+      }
+      const tracked = candidates.find((candidate) => candidate.id === this.autoAimTargetId);
+      const target = tracked && hasLineOfSight(this.player, tracked, this.stageObstacles)
+        ? tracked
+        : selectAutoAimTarget(this.player, candidates, this.stageObstacles);
       this.autoAimTargetId = target?.id ?? null;
       if (target) {
         const dx = target.x - this.player.x;
@@ -656,6 +890,24 @@ export class SwarmScene extends Phaser.Scene {
     return Math.min(50, Math.max(0, this.game.loop.delta)) / 1000;
   }
 
+  private freeBulletSlots(): number {
+    return this.bullets.reduce((count, bullet) => count + (!bullet.active ? 1 : 0), 0);
+  }
+
+  private combatTargets(maxRange: number): CombatTarget[] {
+    const targets: CombatTarget[] = [];
+    for (const enemy of this.enemies) {
+      if (enemy.state !== 'active') continue;
+      if (distanceBetween(this.player, enemy.sprite) > maxRange + 420) continue;
+      targets.push({ id: enemy.id, x: enemy.sprite.x, y: enemy.sprite.y, radius: ENEMIES[enemy.type].radius });
+    }
+    return targets;
+  }
+
+  private enemyById(id: number): EnemySlot | null {
+    return this.enemies.find((enemy) => enemy.id === id && enemy.state === 'active') ?? null;
+  }
+
   private updateWeapon(): void {
     const pressed = this.triggerPressed;
     this.triggerPressed = false;
@@ -664,19 +916,38 @@ export class SwarmScene extends Phaser.Scene {
     const state = this.weapons[id];
     const trigger = definition.automatic ? this.firingHeld : pressed;
     if (trigger && state.magazine <= 0 && !state.reloading) this.reloadWeapon();
-    const freeSlots = this.bullets.reduce((count, bullet) => count + (!bullet.active ? 1 : 0), 0);
+    const freeSlots = definition.behavior ? Math.max(1, this.freeBulletSlots()) : this.freeBulletSlots();
     if (!canFireWeapon(
       state, definition, this.runTimeMs, this.nextShotAt[id],
       this.firingHeld, pressed, freeSlots,
     )) return;
-    const slots = this.bullets.filter((bullet) => !bullet.active).slice(0, definition.pellets);
     const ammunition = consumeRound(state);
-    if (!ammunition || slots.length !== definition.pellets) return;
+    if (!ammunition) return;
     this.weapons[id] = ammunition;
     this.nextShotAt[id] = this.runTimeMs + definition.fireIntervalMs;
     const shotId = this.nextShotId;
     this.nextShotId += 1;
     this.playerVisual.fire(this.runTimeMs);
+
+    if (definition.behavior === 'chain') this.fireArc(definition, shotId);
+    else if (definition.behavior === 'rail') this.fireRail(definition, shotId);
+    else if (definition.behavior === 'cone') this.fireFlame(definition, shotId);
+    else if (definition.behavior === 'mine') this.placeMineRound(shotId);
+    else this.fireBullets(id, definition, shotId);
+
+    const muzzle = this.playerVisual.muzzlePosition(this.player.rotation);
+    this.muzzle.setPosition(muzzle.x, muzzle.y)
+      .setRotation(this.player.rotation)
+      .setScale(MUZZLE_SCALES[id])
+      .setTint(MUZZLE_COLORS[id]).setVisible(true);
+    this.muzzleUntil = this.runTimeMs + MUZZLE_DURATIONS[id];
+    this.audio.playShot(id);
+    this.requestShake(id === 'rifle' ? 45 : 90, definition.shake);
+  }
+
+  private fireBullets(id: WeaponId, definition: typeof WEAPONS[WeaponId], shotId: number): void {
+    const slots = this.bullets.filter((bullet) => !bullet.active).slice(0, definition.pellets);
+    if (slots.length !== definition.pellets) return;
     for (let index = 0; index < slots.length; index += 1) {
       let offset: number;
       if (id === 'shotgun') {
@@ -688,14 +959,188 @@ export class SwarmScene extends Phaser.Scene {
       }
       this.spawnBullet(slots[index], id, this.player.rotation + offset, shotId);
     }
+  }
+
+  private fireArc(definition: typeof WEAPONS.arc, shotId: number): void {
+    const origin = { x: this.player.x, y: this.player.y };
+    const targets = this.combatTargets(definition.range);
+    const inRange = targets.filter((target) =>
+      distanceBetween(origin, target) <= definition.range + target.radius &&
+      hasLineOfSight(origin, target, this.stageObstacles));
+    const primary = inRange.reduce<CombatTarget | null>((selected, candidate) => {
+      if (!selected) return candidate;
+      const candidateAimDistance = distanceBetween(this.aimPoint, candidate);
+      const selectedAimDistance = distanceBetween(this.aimPoint, selected);
+      if (candidateAimDistance !== selectedAimDistance) {
+        return candidateAimDistance < selectedAimDistance ? candidate : selected;
+      }
+      return distanceBetween(origin, candidate) < distanceBetween(origin, selected) ? candidate : selected;
+    }, null);
+    if (!primary) {
+      const muzzle = this.playerVisual.muzzlePosition(this.player.rotation);
+      this.spawnParticles(muzzle.x, muzzle.y, 0xa8fff4, 3, 80);
+      return;
+    }
+    const chain = selectChainTargets(
+      origin,
+      primary,
+      inRange,
+      this.stageObstacles,
+      5,
+      180,
+    );
+    const points = [new Phaser.Math.Vector2(origin.x, origin.y)];
+    let previous = origin;
+    for (let index = 0; index < chain.length; index += 1) {
+      const target = chain[index];
+      const enemy = this.enemyById(target.id);
+      points.push(new Phaser.Math.Vector2(target.x, target.y));
+      if (enemy) {
+        const angle = Phaser.Math.Angle.Between(previous.x, previous.y, target.x, target.y);
+        this.applyDamage(enemy, chainDamage(definition.damage, index), angle, definition.knockback, shotId, false);
+      }
+      previous = target;
+    }
+    this.addBeamEffect({ kind: 'chain', points, angle: 0, range: 0, arc: 0, until: this.runTimeMs + 130 });
+    this.requestShake(80, definition.shake);
+  }
+
+  private fireRail(definition: typeof WEAPONS.rail, shotId: number): void {
     const muzzle = this.playerVisual.muzzlePosition(this.player.rotation);
-    this.muzzle.setPosition(muzzle.x, muzzle.y)
-      .setRotation(this.player.rotation)
-      .setScale(id === 'rifle' ? 0.72 : id === 'shotgun' ? 1.2 : 1.45)
-      .setTint(id === 'rifle' ? 0x82f5e5 : 0xf5b942).setVisible(true);
-    this.muzzleUntil = this.runTimeMs + (id === 'rifle' ? 42 : id === 'shotgun' ? 72 : 90);
-    this.audio.playShot(id);
-    this.requestShake(id === 'rifle' ? 45 : 90, definition.shake);
+    const trajectory = railTrajectory(
+      muzzle,
+      this.player.rotation,
+      definition.range,
+      this.combatTargets(definition.range),
+      this.stageObstacles,
+      8,
+    );
+    for (const hit of trajectory.hits) {
+      const enemy = this.enemyById(hit.target.id);
+      if (!enemy) continue;
+      this.applyDamage(
+        enemy,
+        definition.damage,
+        this.player.rotation,
+        definition.knockback,
+        shotId,
+        false,
+      );
+      this.spawnParticles(hit.x, hit.y, 0xd9a7ff, 4, 150);
+    }
+    this.addBeamEffect({
+      kind: 'rail',
+      points: [new Phaser.Math.Vector2(muzzle.x, muzzle.y), new Phaser.Math.Vector2(trajectory.end.x, trajectory.end.y)],
+      angle: 0, range: 0, arc: 0,
+      until: this.runTimeMs + 140,
+    });
+    this.requestShake(120, definition.shake);
+  }
+
+  private fireFlame(definition: typeof WEAPONS.flame, shotId: number): void {
+    const muzzle = this.playerVisual.muzzlePosition(this.player.rotation);
+    const targets = coneTargets(
+      muzzle,
+      this.player.rotation,
+      definition.range,
+      definition.spreadRadians,
+      this.combatTargets(definition.range),
+      this.stageObstacles,
+    );
+    for (const target of targets.slice(0, 24)) {
+      const enemy = this.enemyById(target.id);
+      if (!enemy) continue;
+      this.applyDamage(
+        enemy,
+        definition.damage,
+        this.player.rotation + (this.random() - 0.5) * 0.3,
+        definition.knockback,
+        shotId,
+        false,
+      );
+    }
+    this.addBeamEffect({
+      kind: 'flame',
+      points: [new Phaser.Math.Vector2(muzzle.x, muzzle.y)],
+      angle: this.player.rotation,
+      range: definition.range,
+      arc: definition.spreadRadians,
+      until: this.runTimeMs + 90,
+    });
+  }
+
+  private placeMineRound(shotId: number): void {
+    const mine = createMine(this.nextMineId, { x: this.player.x, y: this.player.y }, this.runTimeMs);
+    this.nextMineId += 1;
+    const placement = placeMine(this.mines, mine, LIMITS.mines);
+    this.mines = placement.mines;
+    if (placement.detonated) {
+      this.explodeAt(
+        placement.detonated.x,
+        placement.detonated.y,
+        shotId,
+        WEAPONS.mines,
+        null,
+      );
+    }
+    this.spawnParticles(mine.x, mine.y, 0xf5b942, 4, 70);
+  }
+
+  private addBeamEffect(effect: BeamEffect): void {
+    this.beamEffects.push(effect);
+    if (this.beamEffects.length > LIMITS.beamEffects) this.beamEffects.shift();
+  }
+
+  private updateMines(deltaMs: number): void {
+    if (!this.campaign) return;
+    const targets = this.combatTargets(400);
+    const update = updateMines(this.mines, this.runTimeMs, targets, 90);
+    this.mines = update.mines;
+    for (const detonated of update.detonated) {
+      this.explodeAt(detonated.x, detonated.y, detonated.id, WEAPONS.mines, null);
+    }
+    for (let index = 0; index < this.mineImages.length; index += 1) {
+      const image = this.mineImages[index];
+      const mine = this.mines[index];
+      if (!mine) {
+        image.setVisible(false);
+        continue;
+      }
+      const armed = this.runTimeMs >= mine.armedAt;
+      image.setPosition(mine.x, mine.y)
+        .setAlpha(armed ? 1 : 0.55)
+        .setScale(armed ? 1 : 0.8)
+        .setVisible(this.isWorldVisible(mine.x, mine.y, 60));
+    }
+    void deltaMs;
+  }
+
+  private explodeAt(
+    x: number,
+    y: number,
+    eventId: number,
+    definition: typeof WEAPONS.launcher | typeof WEAPONS.mines,
+    directEnemy: EnemySlot | null,
+  ): void {
+    const radius = definition.explosionRadius ?? 0;
+    const candidates = this.enemyHash.query(x - radius, y - radius, x + radius, y + radius, this.contactCandidates);
+    let applied = 0;
+    for (const enemy of candidates) {
+      if (enemy.state !== 'active') continue;
+      const distance = distanceBetween({ x, y }, enemy.sprite);
+      const damage = explosionDamage(definition.damage, distance, radius, enemy === directEnemy);
+      if (damage <= 0) continue;
+      const angle = distance > 0.001
+        ? Phaser.Math.Angle.Between(x, y, enemy.sprite.x, enemy.sprite.y)
+        : Phaser.Math.Angle.Between(this.player.x, this.player.y, x, y);
+      this.applyDamage(enemy, damage, angle, definition.knockback, eventId, true);
+      applied += 1;
+    }
+    this.spawnExplosionRing(x, y, radius);
+    this.spawnParticles(x, y, 0xf5b942, 22, 260);
+    this.audio.playExplosion();
+    this.requestShake(140, definition.shake);
+    if (applied > 0) this.spawnParticles(x, y, 0xffffff, 5, 120);
   }
 
   private spawnBullet(slot: BulletSlot, id: WeaponId, angle: number, shotId: number): void {
@@ -733,7 +1178,7 @@ export class SwarmScene extends Phaser.Scene {
         const x = startX + (endX - startX) * collision.time;
         const y = startY + (endY - startY) * collision.time;
         if (bullet.weaponId === 'launcher') {
-          this.explode(x, y, bullet.shotId, collision.enemy);
+          this.explodeAt(x, y, bullet.shotId, WEAPONS.launcher, collision.enemy);
         } else if (collision.enemy) {
           const definition = WEAPONS[bullet.weaponId];
           this.applyDamage(
@@ -752,7 +1197,7 @@ export class SwarmScene extends Phaser.Scene {
         endY - Math.sin(bullet.image.rotation) * 22,
       );
       if (bullet.remainingMs <= 0) {
-        if (bullet.weaponId === 'launcher') this.explode(endX, endY, bullet.shotId, null);
+        if (bullet.weaponId === 'launcher') this.explodeAt(endX, endY, bullet.shotId, WEAPONS.launcher, null);
         this.deactivateBullet(bullet);
         continue;
       }
@@ -787,7 +1232,7 @@ export class SwarmScene extends Phaser.Scene {
       }
     }
     const projectileRadius = bullet.weaponId === 'launcher' ? 6 : 2;
-    for (const obstacle of OBSTACLES) {
+    for (const obstacle of this.stageObstacles) {
       const time = segmentRectangleTime(
         startX, startY, endX, endY,
         obstacle.x - obstacle.width / 2 - projectileRadius,
@@ -817,29 +1262,6 @@ export class SwarmScene extends Phaser.Scene {
     return Number.isFinite(closest) && closest >= 0 && closest <= 1 ? closest : null;
   }
 
-  private explode(x: number, y: number, shotId: number, directEnemy: EnemySlot | null): void {
-    const definition = WEAPONS.launcher;
-    const radius = definition.explosionRadius ?? 0;
-    const candidates = this.enemyHash.query(x - radius, y - radius, x + radius, y + radius, this.contactCandidates);
-    let applied = 0;
-    for (const enemy of candidates) {
-      if (enemy.state !== 'active') continue;
-      const distance = distanceBetween({ x, y }, enemy.sprite);
-      const damage = explosionDamage(definition.damage, distance, radius, enemy === directEnemy);
-      if (damage <= 0) continue;
-      const angle = distance > 0.001
-        ? Phaser.Math.Angle.Between(x, y, enemy.sprite.x, enemy.sprite.y)
-        : Phaser.Math.Angle.Between(this.player.x, this.player.y, x, y);
-      this.applyDamage(enemy, damage, angle, definition.knockback, shotId, true);
-      applied += 1;
-    }
-    this.spawnExplosionRing(x, y, radius);
-    this.spawnParticles(x, y, 0xf5b942, 22, 260);
-    this.audio.playExplosion();
-    this.requestShake(140, definition.shake);
-    if (applied > 0) this.spawnParticles(x, y, 0xffffff, 5, 120);
-  }
-
   private applyDamage(
     enemy: EnemySlot,
     damage: number,
@@ -849,6 +1271,7 @@ export class SwarmScene extends Phaser.Scene {
     oncePerEvent: boolean,
   ): void {
     if (enemy.state !== 'active' || damage <= 0) return;
+    const previousHealth = enemy.health;
     enemy.health -= damage;
     enemy.flashUntil = this.runTimeMs + 65;
     enemy.sprite.setTintFill(0xffffff);
@@ -864,8 +1287,28 @@ export class SwarmScene extends Phaser.Scene {
       }
       enemy.lastKnockbackEvent = eventId;
     }
+    if (enemy.rank === 'alpha' && enemy.maxHealth > 0 && this.campaign) {
+      const crossings = alphaThresholdCrossings(previousHealth, enemy.health, enemy.maxHealth);
+      for (let index = 0; index < crossings.length; index += 1) this.summonAlphaReserve();
+    }
     if (enemy.health <= 0) this.killEnemy(enemy);
     else this.audio.playHit();
+  }
+
+  private summonAlphaReserve(): void {
+    if (!this.campaign) return;
+    const stage = currentStage(this.campaign);
+    const objective = currentObjective(this.campaign);
+    let summoned = false;
+    for (const wave of stage.waves) {
+      if (wave.atMs >= 0 || !waveIsActiveForObjective(stage, objective, wave)) continue;
+      this.triggerWave(wave);
+      summoned = true;
+    }
+    if (summoned) {
+      this.setNotice('Alpha가 무리를 소환합니다', 2200);
+      this.audio.playMission();
+    }
   }
 
   private killEnemy(enemy: EnemySlot): void {
@@ -878,6 +1321,20 @@ export class SwarmScene extends Phaser.Scene {
     this.spawnParticles(x, y, 0xff5d64, enemy.type === 'brute' ? 18 : 9, 190);
     this.kills += 1;
     this.audio.playEnemyDeath();
+    if (this.campaign && enemy.ownership) {
+      this.campaign = registerEnemyKill(this.campaign, enemy.ownership);
+    }
+    const windowStart = this.runTimeMs - 700;
+    this.recentKillAt = this.recentKillAt.filter((at) => at >= windowStart);
+    this.recentKillAt.push(this.runTimeMs);
+    const count = this.recentKillAt.length;
+    if (count >= 2 && this.campaign) this.campaign = registerMultiKill(this.campaign, count);
+    for (const tier of MULTI_KILL_TIERS) {
+      if (count === tier) {
+        this.setNotice(`${tier}연속 처치!`, 1400);
+        this.audio.playMultiKill(Math.min(6, tier / 5));
+      }
+    }
   }
 
   private activateSpawnedEnemies(): void {
@@ -893,6 +1350,19 @@ export class SwarmScene extends Phaser.Scene {
       enemy.nextAiAt = this.runTimeMs + enemy.id % 10 * 10;
       enemy.nextStrafeAt = this.runTimeMs + 400 + enemy.id % 4 * 90;
     }
+  }
+
+  private enemyTexture(enemy: EnemySlot, step: boolean): string {
+    if (enemy.rank === 'elite') return step ? CAMPAIGN_TEXTURES.enemies.eliteStep : CAMPAIGN_TEXTURES.enemies.elite;
+    if (enemy.rank === 'alpha') return step ? CAMPAIGN_TEXTURES.enemies.alphaStep : CAMPAIGN_TEXTURES.enemies.alpha;
+    return step ? enemyStepTexture(enemy.type) : TEXTURES.enemies[enemy.type];
+  }
+
+  private enemyDisplaySize(enemy: EnemySlot): number {
+    const base = ENEMY_ANIMATION[enemy.type].size;
+    if (enemy.rank === 'alpha') return Math.round(base * 1.65);
+    if (enemy.rank === 'elite') return Math.round(base * 1.25);
+    return base;
   }
 
   private updateEnemies(deltaMs: number): void {
@@ -915,11 +1385,10 @@ export class SwarmScene extends Phaser.Scene {
       );
       if (Math.abs(enemy.moveX) + Math.abs(enemy.moveY) > 1) {
         enemy.sprite.setRotation(Math.atan2(enemy.moveY, enemy.moveX));
-        const animation = ENEMY_ANIMATION[enemy.type];
-        const frame = Math.floor((this.runTimeMs + enemy.id * 37) / animation.frameMs) % 2;
-        const texture = frame === 0 ? TEXTURES.enemies[enemy.type] : enemyStepTexture(enemy.type);
+        const frame = Math.floor((this.runTimeMs + enemy.id * 37) / ENEMY_ANIMATION[enemy.type].frameMs) % 2;
+        const texture = this.enemyTexture(enemy, frame === 1);
         if (enemy.sprite.texture.key !== texture) {
-          enemy.sprite.setTexture(texture).setDisplaySize(animation.size, animation.size);
+          enemy.sprite.setTexture(texture).setDisplaySize(this.enemyDisplaySize(enemy), this.enemyDisplaySize(enemy));
         }
       }
       enemy.sprite.setVisible(this.isWorldVisible(enemy.sprite.x, enemy.sprite.y, 100));
@@ -969,8 +1438,9 @@ export class SwarmScene extends Phaser.Scene {
     let moveX = Math.cos(moveAngle) + separationX * 0.85;
     let moveY = Math.sin(moveAngle) + separationY * 0.85;
     const magnitude = Math.hypot(moveX, moveY) || 1;
-    moveX = moveX / magnitude * definition.speed;
-    moveY = moveY / magnitude * definition.speed;
+    const speed = definition.speed * enemy.speedMultiplier;
+    moveX = moveX / magnitude * speed;
+    moveY = moveY / magnitude * speed;
     enemy.moveX = moveX;
     enemy.moveY = moveY;
     enemy.nextAiAt = this.runTimeMs + COMBAT.aiIntervalMs;
@@ -996,7 +1466,7 @@ export class SwarmScene extends Phaser.Scene {
       if (!isWithinRange(this.player, enemy.sprite, this.playerRadius + definition.radius)) continue;
       enemy.nextAttackAt = this.runTimeMs + COMBAT.enemyContactCooldownMs;
       this.nextPlayerDamageAt = this.runTimeMs + COMBAT.playerInvulnerabilityMs;
-      this.playerHealth = Math.max(0, this.playerHealth - definition.contactDamage);
+      this.playerHealth = Math.max(0, this.playerHealth - definition.contactDamage * enemy.damageMultiplier);
       this.playerFlashUntil = this.runTimeMs + 100;
       this.playerVisual.flash(0xff5d64);
       this.spawnParticles(this.player.x, this.player.y, 0xff5d64, 6, 105);
@@ -1008,60 +1478,91 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private processWaveTriggers(): void {
-    if (!this.character || this.mission.phase === 'complete') return;
-    const phase = this.mission.phase;
-    for (const wave of WAVES) {
-      if (wave.phase !== phase || this.triggeredWaves.has(wave.id)) continue;
-      const triggered = phase === 'infiltrate'
-        ? this.player.x >= wave.at
-        : this.mission.elapsedMs >= wave.at;
-      if (!triggered) continue;
-      this.triggeredWaves.add(wave.id);
-      this.queueWave(wave);
+    if (!this.campaign || this.campaign.phase !== 'combat') return;
+    const stage = currentStage(this.campaign);
+    const objective = currentObjective(this.campaign);
+    for (const wave of stage.waves) {
+      if (wave.atMs < 0 || this.triggeredWaves.has(wave.id)) continue;
+      if (wave.objectiveId !== objective.id) continue;
+      if (this.campaign.objectiveElapsedMs < wave.atMs) continue;
+      this.triggerWave(wave);
     }
   }
 
-  private queueWave(wave: WaveDefinition): void {
-    const types: EnemyId[] = [];
+  private triggerWave(wave: CampaignWaveDefinition): void {
+    if (!this.campaign) return;
+    this.triggeredWaves.add(wave.id);
+    this.campaign = registerWaveQueued(this.campaign, wave);
+    const types: { type: EnemyId; rank: EnemyRank }[] = [];
     for (const id of ['swarmer', 'skitter', 'brute'] as const) {
-      for (let count = 0; count < wave.counts[id]; count += 1) types.push(id);
+      for (let count = 0; count < wave.counts[id]; count += 1) types.push({ type: id, rank: 'normal' });
     }
+    for (let count = 0; count < (wave.eliteCount ?? 0); count += 1) types.push({ type: 'brute', rank: 'elite' });
+    for (let count = 0; count < (wave.alphaCount ?? 0); count += 1) types.push({ type: 'brute', rank: 'alpha' });
     for (let index = types.length - 1; index > 0; index -= 1) {
       const target = Math.floor(this.random() * (index + 1));
       [types[index], types[target]] = [types[target], types[index]];
     }
-    const direction = wave.phase !== 'extract'
-      ? null
-      : wave.id === 'X-2' ? 'rear' : 'forward';
-    for (const type of types) {
-      if (this.spawnQueue.length >= LIMITS.spawnQueue) break;
-      this.spawnQueue.push({ type, phase: wave.phase, direction });
-    }
+    const ownership: WaveOwnership = {
+      waveId: wave.id,
+      objectiveId: wave.objectiveId,
+      rank: 'normal',
+      required: wave.required,
+    };
+    types.forEach((entry, index) => {
+      const direction = wave.direction === 'both'
+        ? (index % 2 === 0 ? 'forward' : 'rear')
+        : wave.direction;
+      this.spawnQueue.push({
+        type: entry.type,
+        rank: entry.rank,
+        direction,
+        ownership: { ...ownership, rank: entry.rank },
+      });
+    });
   }
 
   private processSpawnQueue(): void {
-    if (this.mission.phase === 'complete' || this.spawnQueue.length === 0) return;
-    if (this.mission.phase === 'defend' && !isDefenseZoneActive(this.player)) return;
-    const clock = this.mission.phase === 'infiltrate' ? this.runTimeMs : this.mission.elapsedMs;
+    if (!this.campaign || this.spawnQueue.length === 0) return;
+    const stage = currentStage(this.campaign);
+    const objective = currentObjective(this.campaign);
+    if (objective.kind === 'defend' &&
+        !isWithinRange(this.player, objective.point, objective.radius)) return;
+    const clock = this.campaign.stageElapsedMs;
     if (clock < this.nextSpawnEmissionAt) return;
-    if (this.enemyBudgetCount() >= LIMITS.enemies) {
-      this.nextSpawnEmissionAt = clock + COMBAT.spawnEmissionMs;
+    const aliveCap = Math.min(stage.maxAlive, LIMITS.enemies);
+    if (this.enemyBudgetCount() >= aliveCap) {
+      this.nextSpawnEmissionAt = clock + 120;
       return;
     }
+    const interval = stageDifficulty(this.campaign.stageIndex).spawnIntervalMs;
     const request = this.spawnQueue[0];
     const slot = this.enemies.find((enemy) => enemy.state === 'inactive');
     const point = slot ? this.findSpawnPoint(request) : null;
     if (!slot || !point) {
-      this.nextSpawnEmissionAt = clock + COMBAT.spawnEmissionMs;
+      this.nextSpawnEmissionAt = clock + 240;
       return;
     }
     this.spawnQueue.shift();
+    this.spawnEnemyAt(slot, request, point);
+    this.nextSpawnEmissionAt = clock + interval;
+  }
+
+  private spawnEnemyAt(slot: EnemySlot, request: SpawnRequest, point: { x: number; y: number }): void {
+    if (!this.campaign || !this.character) return;
     const definition = ENEMIES[request.type];
+    const difficulty = stageDifficulty(this.campaign.stageIndex);
+    const rankHealth = request.rank === 'elite' ? 2.2 : request.rank === 'alpha' ? 1800 / definition.maxHealth : 1;
     slot.id = this.nextEnemyId;
     this.nextEnemyId += 1;
     slot.type = request.type;
+    slot.rank = request.rank;
     slot.state = 'spawning';
-    slot.health = definition.maxHealth;
+    slot.ownership = request.ownership;
+    slot.maxHealth = Math.max(1, Math.round(definition.maxHealth * difficulty.health * rankHealth));
+    slot.health = slot.maxHealth;
+    slot.speedMultiplier = difficulty.speed * (request.rank === 'elite' ? 1.1 : request.rank === 'alpha' ? 0.95 : 1);
+    slot.damageMultiplier = difficulty.contactDamage * (request.rank === 'elite' ? 1.5 : request.rank === 'alpha' ? 1.9 : 1);
     slot.activateAt = this.runTimeMs + COMBAT.spawnWarningMs;
     slot.nextAttackAt = Number.POSITIVE_INFINITY;
     slot.flashUntil = 0;
@@ -1070,19 +1571,21 @@ export class SwarmScene extends Phaser.Scene {
     slot.knockX = 0;
     slot.knockY = 0;
     slot.lastKnockbackEvent = -1;
-    const size = ENEMY_ANIMATION[request.type].size;
-    slot.sprite.setTexture(TEXTURES.enemies[request.type]).setDisplaySize(size, size)
+    slot.sprite.setTexture(this.enemyTexture(slot, false))
+      .setDisplaySize(this.enemyDisplaySize(slot), this.enemyDisplaySize(slot))
       .setPosition(point.x, point.y).setVisible(false);
     slot.warning.setPosition(point.x, point.y).setScale(definition.radius / 13).setVisible(true);
-    this.nextSpawnEmissionAt = clock + COMBAT.spawnEmissionMs;
+    this.campaign = registerEnemySpawn(this.campaign, request.ownership);
   }
 
   private findSpawnPoint(request: SpawnRequest): { x: number; y: number } | null {
+    if (!this.campaign) return null;
     let fallback: { x: number; y: number } | null = null;
     let fallbackDistance = -1;
     const radius = ENEMIES[request.type].radius + 3;
+    const objective = getCampaignObjective(this.campaign, this.player);
     const forward = Phaser.Math.Angle.Between(
-      this.player.x, this.player.y, WORLD.extraction.x, WORLD.extraction.y,
+      this.player.x, this.player.y, objective.worldX, objective.worldY,
     );
     for (let attempt = 0; attempt < 48; attempt += 1) {
       const ring = 520 + this.random() * 200;
@@ -1112,8 +1615,7 @@ export class SwarmScene extends Phaser.Scene {
 
   private validSpawn(x: number, y: number, radius: number): boolean {
     return x >= 48 && y >= 48 && x <= WORLD.width - 48 && y <= WORLD.height - 48 &&
-      distanceBetween({ x, y }, this.player) >= 360 &&
-      distanceBetween({ x, y }, WORLD.infiltration) >= 48 + radius &&
+      distanceBetween({ x, y }, this.player) >= 340 &&
       !this.isBlocked(x, y, radius);
   }
 
@@ -1122,17 +1624,10 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private updateSupplies(): void {
-    if (!this.character) return;
+    if (!this.character || !this.campaign) return;
     for (const supply of this.supplies) {
       if (!supply.unlocked) {
-        const available = supply.definition.availability === 'start' ||
-          (supply.definition.availability === 'defend' && this.mission.phase !== 'infiltrate') ||
-          (supply.definition.availability === 'defendHalf' &&
-            (this.mission.phase === 'extract' || this.mission.phase === 'complete' ||
-              (this.mission.phase === 'defend' && this.mission.elapsedMs >= MISSION.defenseDurationMs / 2))) ||
-          (supply.definition.availability === 'extract' &&
-            (this.mission.phase === 'extract' || this.mission.phase === 'complete'));
-        if (available) {
+        if (this.campaign.stageElapsedMs >= supply.definition.atMs) {
           supply.unlocked = true;
           supply.active = true;
           supply.image.setVisible(true).setAlpha(1);
@@ -1141,7 +1636,12 @@ export class SwarmScene extends Phaser.Scene {
       if (!supply.active) continue;
       supply.image.setRotation(Math.sin(this.runTimeMs / 700) * 0.06);
       if (!isWithinRange(this.player, supply.definition, COMBAT.supplyPickupRadius)) continue;
-      const update = applySupply(this.weapons, this.playerHealth, this.character);
+      const update = applySupply(
+        this.weapons,
+        this.playerHealth,
+        this.character,
+        this.campaign.unlockedWeapons,
+      );
       if (!update.used) continue;
       this.weapons = update.weapons;
       this.playerHealth = update.health;
@@ -1149,14 +1649,19 @@ export class SwarmScene extends Phaser.Scene {
       supply.image.setVisible(false);
       this.spawnParticles(supply.definition.x, supply.definition.y, 0x39e6d0, 12, 120);
       this.audio.playSupply();
-      this.setNotice('보급 획득 · HP +45 · 세 무기 예비 탄약', 2200);
+      this.setNotice('보급 획득 · HP +45 · 해금 무기 예비 탄약', 2200);
       this.emitHud();
     }
   }
 
   private updateEmergencyAmmo(deltaMs: number): void {
-    if (!this.character) return;
-    const update = updateEmergency(this.emergency, totalAmmo(this.weapons), this.runTimeMs, deltaMs);
+    if (!this.character || !this.campaign) return;
+    const update = updateEmergency(
+      this.emergency,
+      totalAmmo(this.weapons, this.campaign.unlockedWeapons),
+      this.runTimeMs,
+      deltaMs,
+    );
     this.emergency = update.state;
     if (!update.grant) return;
     this.weapons[this.selectedWeapon] = cancelReload(this.weapons[this.selectedWeapon]);
@@ -1171,21 +1676,6 @@ export class SwarmScene extends Phaser.Scene {
     this.audio.playSupply();
     if (this.weapons.rifle.magazine === 0) this.reloadWeapon();
     this.emitHud();
-  }
-
-  private handleMissionTransition(previous: MissionPhase): void {
-    this.spawnQueue.length = 0;
-    this.nextSpawnEmissionAt = 0;
-    if (this.mission.phase === 'defend') {
-      this.setNotice('중계기 가동 — 방어 구역 안에서 25초', 3200);
-      this.audio.playMission();
-    } else if (this.mission.phase === 'extract') {
-      this.setNotice('신호 전송 완료 — 북서 승강기로 탈출', 3200);
-      this.audio.playMission();
-    } else if (this.mission.phase === 'complete' && previous === 'extract') {
-      this.audio.playMission();
-      this.endRun('victory');
-    }
   }
 
   private endRun(screen: 'dead' | 'victory'): void {
@@ -1252,6 +1742,46 @@ export class SwarmScene extends Phaser.Scene {
 
   private updateTransientEffects(): void {
     if (this.muzzle.visible && this.runTimeMs >= this.muzzleUntil) this.muzzle.setVisible(false);
+    this.updatePickupsPulse();
+    this.beamEffects = this.beamEffects.filter((effect) => effect.until > this.runTimeMs);
+    this.beamLayer.clear();
+    if (this.screen !== 'playing') return;
+    for (const effect of this.beamEffects) {
+      const remaining = Math.max(0, effect.until - this.runTimeMs);
+      const alpha = Math.min(1, remaining / 90);
+      if (effect.kind === 'chain') {
+        this.beamLayer.lineStyle(3, 0x39e6d0, alpha);
+        for (let index = 1; index < effect.points.length; index += 1) {
+          const from = effect.points[index - 1];
+          const to = effect.points[index];
+          const midX = (from.x + to.x) / 2 + (this.random() - 0.5) * 18;
+          const midY = (from.y + to.y) / 2 + (this.random() - 0.5) * 18;
+          this.beamLayer.beginPath();
+          this.beamLayer.moveTo(from.x, from.y);
+          this.beamLayer.lineTo(midX, midY);
+          this.beamLayer.lineTo(to.x, to.y);
+          this.beamLayer.strokePath();
+        }
+      } else if (effect.kind === 'rail') {
+        const from = effect.points[0];
+        const to = effect.points[1];
+        this.beamLayer.lineStyle(6, 0xd9a7ff, alpha * 0.5).lineBetween(from.x, from.y, to.x, to.y);
+        this.beamLayer.lineStyle(2, 0xffffff, alpha).lineBetween(from.x, from.y, to.x, to.y);
+      } else {
+        const origin = effect.points[0];
+        const steps = 7;
+        this.beamLayer.fillStyle(0xff8a3c, alpha * 0.35);
+        this.beamLayer.beginPath();
+        this.beamLayer.moveTo(origin.x, origin.y);
+        for (let index = 0; index <= steps; index += 1) {
+          const angle = effect.angle - effect.arc / 2 + (effect.arc * index) / steps;
+          const wobble = effect.range * (0.82 + this.random() * 0.18);
+          this.beamLayer.lineTo(origin.x + Math.cos(angle) * wobble, origin.y + Math.sin(angle) * wobble);
+        }
+        this.beamLayer.closePath();
+        this.beamLayer.fillPath();
+      }
+    }
   }
 
   private spawnParticles(x: number, y: number, color: number, count: number, speed: number): void {
@@ -1302,6 +1832,36 @@ export class SwarmScene extends Phaser.Scene {
     bullet.trail.setVisible(false);
   }
 
+  private refreshPickups(): void {
+    for (const pickup of this.pickups) {
+      pickup.image.setVisible(false);
+      pickup.pointIndex = -1;
+    }
+    if (!this.campaign || this.screen === 'menu') return;
+    const objective = currentObjective(this.campaign);
+    if (objective.kind !== 'collect') return;
+    const texture = objective.id.includes('fuse')
+      ? CAMPAIGN_TEXTURES.effects.fuse
+      : CAMPAIGN_TEXTURES.effects.coolant;
+    objective.points.forEach((point, index) => {
+      if (index < this.campaign!.collectIndex) return;
+      const pickup = this.pickups.find((slot) => slot.pointIndex === -1);
+      if (!pickup) return;
+      pickup.pointIndex = index;
+      pickup.image.setTexture(texture).setPosition(point.x, point.y)
+        .setDisplaySize(46, 46).setAlpha(1).setVisible(true);
+    });
+  }
+
+  private updatePickupsPulse(): void {
+    for (const pickup of this.pickups) {
+      if (pickup.pointIndex < 0 || !pickup.image.visible) continue;
+      const scale = 46 + Math.sin(this.runTimeMs / 260 + pickup.pointIndex) * 5;
+      pickup.image.setDisplaySize(scale, scale);
+      pickup.image.setAlpha(0.75 + Math.sin(this.runTimeMs / 260 + pickup.pointIndex) * 0.25);
+    }
+  }
+
   private resetPools(): void {
     for (const bullet of this.bullets) this.deactivateBullet(bullet);
     for (const enemy of this.enemies) {
@@ -1317,15 +1877,18 @@ export class SwarmScene extends Phaser.Scene {
       corpse.active = false;
       corpse.image.setVisible(false);
     }
-    for (const supply of this.supplies) {
-      supply.active = false;
-      supply.unlocked = false;
-      supply.image.setVisible(false);
+    for (const supply of this.supplies) supply.image.destroy();
+    this.supplies = [];
+    for (const pickup of this.pickups) {
+      pickup.image.setVisible(false);
+      pickup.pointIndex = -1;
     }
     this.spawnQueue.length = 0;
     this.triggeredWaves.clear();
     this.enemyHash.clear();
     this.muzzle?.setVisible(false);
+    this.beamEffects = [];
+    this.beamLayer?.clear();
     this.cameras.main.shakeEffect.reset();
   }
 
@@ -1345,7 +1908,7 @@ export class SwarmScene extends Phaser.Scene {
     if (x - padding < 8 || y - padding < 8 || x + padding > WORLD.width - 8 || y + padding > WORLD.height - 8) {
       return true;
     }
-    return OBSTACLES.some((obstacle) =>
+    return this.stageObstacles.some((obstacle) =>
       x + padding > obstacle.x - obstacle.width / 2 &&
       x - padding < obstacle.x + obstacle.width / 2 &&
       y + padding > obstacle.y - obstacle.height / 2 &&
@@ -1373,7 +1936,6 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private drawFacility(): void {
-    createFacility(this);
     this.objectiveMarker = this.add.graphics().setDepth(3);
     this.objectiveText = this.add.text(0, 0, '', {
       color: '#f5b942', fontFamily: 'monospace', fontSize: '17px', fontStyle: 'bold',
@@ -1388,16 +1950,25 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private updateObjectiveMarker(): void {
-    const objective = getMissionObjective(this.mission, this.ready ? this.player : WORLD.start);
-    const color = this.mission.phase === 'complete' ? 0x39e6d0 : 0xf5b942;
+    if (!this.campaign) {
+      this.objectiveMarker.clear();
+      this.objectiveText.setText('');
+      this.objectiveArrow.setVisible(false);
+      this.objectiveDistance.setVisible(false);
+      return;
+    }
+    const snapshot = campaignSnapshot(this.campaign, this.mines.length);
+    const objective = currentObjective(this.campaign);
+    const view = getCampaignObjective(this.campaign, this.player);
+    const color = this.campaign.phase === 'clear' || this.campaign.phase === 'complete' ? 0x39e6d0 : 0xf5b942;
     const pulse = 0.68 + Math.sin(this.runTimeMs / 240) * 0.16;
-    const x = objective.worldX;
-    const y = objective.worldY;
+    const x = view.worldX;
+    const y = view.worldY;
     this.objectiveMarker.clear();
     this.objectiveMarker.lineStyle(3, color, pulse);
-    if (this.mission.phase === 'defend') {
-      this.objectiveMarker.strokeCircle(x, y, MISSION.defenseZoneRadius);
-      this.objectiveMarker.lineStyle(1, color, 0.25).strokeCircle(x, y, MISSION.defenseZoneRadius - 8);
+    if (objective.kind === 'defend') {
+      this.objectiveMarker.strokeCircle(x, y, objective.radius);
+      this.objectiveMarker.lineStyle(1, color, 0.25).strokeCircle(x, y, objective.radius - 8);
     }
     this.objectiveMarker.lineStyle(3, color, pulse);
     this.objectiveMarker.beginPath();
@@ -1407,23 +1978,23 @@ export class SwarmScene extends Phaser.Scene {
     this.objectiveMarker.lineTo(x - 48, y);
     this.objectiveMarker.closePath();
     this.objectiveMarker.strokePath();
-    const labels: Record<MissionPhase, string> = {
-      infiltrate: '01 // 중계기',
-      defend: `02 // 방어 ${Math.max(0, Math.ceil((MISSION.defenseDurationMs - this.mission.elapsedMs) / 1000))}`,
-      extract: '03 // 승강기',
-      complete: '임무 완료',
-    };
-    const label = labels[this.mission.phase];
+
+    let label = view.label;
+    if (objective.kind === 'purge' || objective.kind === 'hunt') {
+      label = `${objective.label} · 잔여 ${snapshot.requiredRemaining}`;
+    }
     if (label !== this.objectiveLabel) {
       this.objectiveLabel = label;
       this.objectiveText.setText(label);
     }
     this.objectiveText.setPosition(x, y - 76);
+    const hasPoint = objective.kind !== 'purge' && objective.kind !== 'hunt';
+    this.objectiveText.setVisible(hasPoint || this.screen === 'playing');
     const screen = this.worldToScreen(x, y);
     const margin = 42;
     const offscreen = screen.x < margin || screen.y < margin ||
       screen.x > this.cameras.main.width - margin || screen.y > this.cameras.main.height - margin;
-    const showArrow = offscreen && this.screen === 'playing';
+    const showArrow = offscreen && this.screen === 'playing' && hasPoint;
     this.objectiveArrow.setVisible(showArrow);
     this.objectiveDistance.setVisible(showArrow);
     if (showArrow) {
@@ -1439,13 +2010,13 @@ export class SwarmScene extends Phaser.Scene {
   }
 
   private emitHud(): void {
-    if (!this.character || this.screen === 'menu') return;
-    const objective = getMissionObjective(this.mission, this.player);
+    if (!this.character || !this.campaign || this.screen === 'menu') return;
+    const view = getCampaignObjective(this.campaign, this.player);
     const selected = WEAPONS[this.selectedWeapon];
     this.callbacks.onHud({
       health: Math.max(0, Math.ceil(this.playerHealth)),
       maxHealth: this.character.maxHealth,
-      weapons: WEAPON_ORDER.map((id) => ({
+      weapons: CAMPAIGN_WEAPON_ORDER.map((id) => ({
         id,
         magazine: this.weapons[id].magazine,
         reserve: this.weapons[id].reserve,
@@ -1456,12 +2027,14 @@ export class SwarmScene extends Phaser.Scene {
         this.weapons[this.selectedWeapon], this.runTimeMs,
         actualReloadMs(selected, this.character),
       ),
-      missionLabel: objective.label,
-      missionProgress: objective.progress,
-      missionTarget: objective.target,
-      missionPhase: this.mission.phase,
+      missionLabel: view.label,
+      missionProgress: view.progress,
+      missionTarget: view.target,
+      missionPhase: this.snapshotMissionPhase(currentObjective(this.campaign).kind),
       kills: this.kills,
       notice: this.runTimeMs < this.noticeUntil ? this.notice : '',
+      campaign: campaignSnapshot(this.campaign, this.mines.length),
+      reward: this.lastReward,
     });
   }
 
@@ -1510,6 +2083,7 @@ export class SwarmScene extends Phaser.Scene {
     this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.input.off(Phaser.Input.Events.POINTER_UP, this.handlePointerUp, this);
     this.input.off(Phaser.Input.Events.GAME_OUT, this.handlePointerUp, this);
+    this.facility?.destroy();
     this.playerVisual.destroy();
     this.audio.close();
   }

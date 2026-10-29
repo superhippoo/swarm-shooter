@@ -357,7 +357,7 @@ export function stageDifficulty(stageIndex: number): {
   return {
     health: Math.round(Math.min(1.36, 1 + bounded * 0.04) * 100) / 100,
     speed: Math.round(Math.min(1.11, 1 + bounded * (0.11 / 9)) * 100) / 100,
-    contactDamage: Math.round(Math.min(1.36, 1 + bounded * 0.04) * 100) / 100,
+    contactDamage: Math.round(Math.min(1, 0.72 + bounded * (0.28 / 9)) * 100) / 100,
     spawnIntervalMs: 100 - bounded * (35 / 9),
   };
 }

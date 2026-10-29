@@ -183,7 +183,7 @@ describe('sequential objectives and ownership', () => {
 describe('difficulty and Alpha thresholds', () => {
   it('caps health, speed, contact and spawn scaling at stage ten', () => {
     expect(stageDifficulty(0)).toMatchObject({ health: 1, speed: 1, spawnIntervalMs: 100 });
-    expect(stageDifficulty(9)).toMatchObject({ health: 1.36, speed: 1.11, contactDamage: 1.36, spawnIntervalMs: 65 });
+    expect(stageDifficulty(9)).toMatchObject({ health: 1.36, speed: 1.11, contactDamage: 1, spawnIntervalMs: 65 });
   });
 
   it('reports each Alpha summon threshold once when damage crosses it', () => {
