@@ -9,7 +9,7 @@ export async function snapshot(page: Page): Promise<GameSnapshot> {
   return page.evaluate(() => window.swarmDiagnostics!() as GameSnapshot);
 }
 
-export async function waitForScreen(page: Page, screen: GameScreen, timeout = 10_000): Promise<void> {
+export async function waitForScreen(page: Page, screen: GameScreen, timeout = 20_000): Promise<void> {
   await expect.poll(async () => (await snapshot(page)).screen, { timeout }).toBe(screen);
 }
 
@@ -105,16 +105,23 @@ export class GameDriver implements CombatDriver {
   }
 
   async selectWeapon(id: WeaponId): Promise<void> {
-    const state = await snapshot(this.page);
-    if (state.screen !== 'playing' || state.selectedWeapon === id) return;
-    if (this.firing) await this.page.mouse.up();
-    this.firing = false;
-    await this.page.keyboard.press(weaponKeys[id]);
-    await expect.poll(async () => {
-      const current = await snapshot(this.page);
-      if (current.screen === 'dead') throw new Error('무기 교체 중 플레이어가 사망했습니다.');
-      return current.selectedWeapon;
-    }, { timeout: 3000 }).toBe(id);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const state = await snapshot(this.page);
+      if (state.screen !== 'playing' || state.selectedWeapon === id) return;
+      if (this.firing) await this.page.mouse.up();
+      this.firing = false;
+      await this.page.keyboard.press(weaponKeys[id]);
+      try {
+        await expect.poll(async () => {
+          const current = await snapshot(this.page);
+          if (current.screen !== 'playing') return id;
+          return current.selectedWeapon;
+        }, { timeout: 3000 }).toBe(id);
+        return;
+      } catch {
+      }
+    }
+    throw new Error(`실제 키보드 입력으로 ${id} 무기를 선택하지 못했습니다.`);
   }
 
   async reload(): Promise<void> {

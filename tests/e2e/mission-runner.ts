@@ -251,6 +251,9 @@ function movementTarget(
       }
     });
   }
+  if (supplyTarget && kind === 'extract' && distance(state.player, objective) <= 320) {
+    supplyTarget = null;
+  }
   let target: Point;
   if (supplyTarget) target = supplyTarget;
   else if (kind === 'defend') {
