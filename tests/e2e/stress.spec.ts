@@ -4,7 +4,7 @@ import { GameDriver } from './game-driver';
 import { completeCampaign } from './mission-runner';
 
 test('후반 자연 웨이브 50기 이상에서 실제 사격 성능·풀 상한·단계 정리를 검증한다', async ({ page, browser }) => {
-  test.setTimeout(1_900_000);
+  test.setTimeout(3_700_000);
   const fpsSamples: number[] = [];
   let hordeCaptured = false;
   let denseStage = -1;

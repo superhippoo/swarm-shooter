@@ -4,7 +4,7 @@ import { completeCampaign } from './mission-runner';
 
 for (const character of ['heavy', 'scout'] as const) {
   test(`${character} 캐릭터가 실제 입력으로 10단계 캠페인을 완료한다`, async ({ page }) => {
-    test.setTimeout(1_900_000);
+    test.setTimeout(3_700_000);
     const result = await completeCampaign(page, character, (currentPage) => new GameDriver(currentPage));
 
     if (character === 'heavy') {

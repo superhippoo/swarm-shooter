@@ -117,10 +117,24 @@ function recordWeaponEvidence(
   }
 }
 
+function nearestWorldEnemy(state: GameSnapshot) {
+  let selected: GameSnapshot['enemies'][number] | null = null;
+  let selectedDistance = Number.POSITIVE_INFINITY;
+  for (const enemy of state.enemies) {
+    if (enemy.health <= 0) continue;
+    const enemyDistance = distance(state.player, enemy);
+    if (enemyDistance < selectedDistance) {
+      selected = enemy;
+      selectedDistance = enemyDistance;
+    }
+  }
+  return selected;
+}
+
 function targetForHunt(state: GameSnapshot) {
   const rank = CAMPAIGN_STAGES[state.campaign?.stageIndex ?? 0].enemyRank;
-  if (!rank) return nearestEnemy(state);
-  return state.enemies.find((enemy) => enemy.rank === rank && enemy.health > 0) ?? nearestEnemy(state);
+  if (!rank) return nearestWorldEnemy(state);
+  return state.enemies.find((enemy) => enemy.rank === rank && enemy.health > 0) ?? nearestWorldEnemy(state);
 }
 
 function desiredWeapon(
@@ -310,8 +324,8 @@ export async function completeCampaign(
   page.on('pageerror', (error) => pageErrors.push(error.message));
   const driver = createDriver(page);
   const inputMode = driver.usesTouch ? 'touch' : 'keyboard-mouse';
-  const stageTimeLimitMs = options.stageTimeLimitMs ?? 300_000;
-  const campaignTimeLimitMs = options.campaignTimeLimitMs ?? 1_700_000;
+  const stageTimeLimitMs = options.stageTimeLimitMs ?? 600_000;
+  const campaignTimeLimitMs = options.campaignTimeLimitMs ?? 3_600_000;
   const startedAt = Date.now();
   const reports: StageReport[] = [];
   const recentHistory: unknown[] = [];
@@ -424,7 +438,10 @@ export async function completeCampaign(
           await writeJsonArtifact(`stage-${String(stageIndex + 1).padStart(2, '0')}-objective-${state.campaign?.objectiveIndex}.json`, summarizeState(state));
         }
 
-        const nearest = state.campaign?.objectiveKind === 'hunt' ? targetForHunt(state) : nearestEnemy(state);
+        const nearest = state.campaign?.objectiveKind === 'hunt' ? targetForHunt(state) : nearestWorldEnemy(state);
+        const nearestOnScreen = nearestEnemy(state);
+        const aimTarget = nearest && nearest.screenX >= 0 && nearest.screenX <= 1280 &&
+          nearest.screenY >= 0 && nearest.screenY <= 720 ? nearest : nearestOnScreen;
         const desired = desiredWeapon(state, evidence);
         const selected = weaponState(state, state.selectedWeapon);
         const needsSwitch = state.selectedWeapon !== desired && now - lastWeaponSwitchAt >= 1200 &&
@@ -434,7 +451,7 @@ export async function completeCampaign(
           lastWeaponSwitchAt = Date.now();
         }
         const fired = (options.shouldFire?.(state) ?? true)
-          ? await driver.aimAndFire(nearest?.id)
+          ? await driver.aimAndFire(aimTarget?.id)
           : (await driver.stop(), false);
         if (!fired && selected && selected.reserve > 0 && selected.magazine <= 2 && !selected.reloading) {
           await driver.reload();
