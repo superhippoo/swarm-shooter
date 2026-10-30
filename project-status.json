@@ -4,9 +4,9 @@
     "name": "SWARM//ZERO",
     "goal": "독창적인 에셋과 강력한 사격감을 갖춘 탑다운 웹 호드 슈터의 완결형 MVP"
   },
-  "currentPhase": "확장: 10단계 캠페인(통합 중)",
-  "currentTask": "10단계 캠페인 중간 상태 인계 문서 작성과 원격 저장",
-  "updatedAt": "2026-10-29T13:27:01Z",
+  "currentPhase": "10단계 캠페인 통합, 잔여 회귀 3건 수정 중",
+  "currentTask": "캠페인 검증 결과 인계와 모바일 컨트롤·10단계 전투 회귀 3건 수정",
+  "updatedAt": "2026-10-30T10:01:11Z",
   "requests": [
     {
       "id": "request-mobile-controls",
@@ -41,7 +41,7 @@
       "title": "모바일 게임 전체 화면 표시",
       "request": "모바일에서 게임 화면이 작아. 전체 화면으로 나오게 수정해줘",
       "status": "running",
-      "result": "모바일 Scale.RESIZE와 반응형 침머라를 적용하고 공개 URL 2/2와 모바일 완주를 통과했습니다. 10단계 캠페인 통합 후 전체 회귀를 다시 검증해야 합니다.",
+      "result": "모바일 Scale.RESIZE와 반응형 침머라, 개별 터치 완주와 공개 입력 검증을 통과했습니다. 캠페인 전체 회귀에서 작은 가로 화면 무기 슬롯 검증 1건과 10단계 모바일 완주 1건이 실패해 수정 중입니다.",
       "requestedAt": "2026-10-29"
     },
     {
@@ -50,7 +50,7 @@
       "title": "10단계 캠페인과 강력한 무기",
       "request": "스테이지 10개로 늘리고 난이도를 높이며, 강한 무기로 많은 몹을 통쾌하게 제거하고 단계 시작·클리어·최종 완료를 보여줘",
       "status": "running",
-      "result": "10개 스테이지 데이터와 캠페인 순수 로직, 신규 무기 동작, 단계 UI, 아트·E2E 보조 파일을 추가했고 관련 Vitest 32/32는 통과했습니다. 그러나 SwarmScene 통합이 남아 npx tsc --noEmit은 실패하며 브라우저·프로덕션 검증은 아직입니다.",
+      "result": "10개 스테이지와 4개 해금 무기, 단계 시작·클리어·최종 완료·체크포인트를 통합했습니다. Vitest 56/56, TypeScript, verify, Pages 빌드와 데스크톱 두 캐릭터·모바일 heavy 개별 완주, 프로덕션·공개 입력 2/2를 통과했습니다. 전체 E2E는 22/25로 잔여 3건을 수정 중입니다.",
       "requestedAt": "2026-10-29"
     }
   ],
@@ -65,12 +65,12 @@
     { "id": "handoff", "owner": "main", "role": "문서/형상관리", "title": "다른 PC 재개용 마스터 문서와 원격 동기화", "status": "done", "evidence": ["PROJECT_MASTER.md와 재개 프롬프트 커밋 f977d9b 완료", "superhippoo 계정으로 origin/main force push 완료", "원격 clone에서 PROJECT_MASTER.md와 재개 프롬프트, npm ci, 상태 검증 통과", "전체 커밋 작성자·커미터 superhippoo 재작성 및 원격 검증 완료"], "updatedAt": "2026-10-26T07:17:57Z" },
     { "id": "mobile-controls", "owner": "main", "role": "프론트엔드/검증", "title": "모바일 가로 컨트롤과 자동 조준", "status": "done", "evidence": ["Vitest 24/24와 TypeScript·프로덕션 빌드 통과", "모바일 컨트롤 Chromium E2E 7/7 통과", "이동 유지 재장전·무기 변경이 로컬·공개 URL·프로덕션에서 통과", "heavy 터치 완주 107030ms·HP 259/520·최대 72기·재시작 성공", "전체 Chromium 23/23 통과"], "updatedAt": "2026-10-29T03:20:04Z" },
     { "id": "art-visual-upgrade", "owner": "main", "role": "디자인/프론트엔드", "title": "2.5D 시설 맵과 캐릭터·무기 애니메이션", "status": "done", "evidence": ["독창적 SVG 29종과 캐릭터 초상화·무기별 외형·하체 보행·상체 조준 구현", "신규 에셋·대체 텍스처·모바일 컨트롤·캐릭터 시각 Chromium 9/9 통과", "TypeScript와 Vite 프로덕션 빌드·프로덕션 경로 시각 검증 통과", "전체 Chromium 23/23, 53기·FPS 표본 35개·평균 12.55fps·page error 0"], "updatedAt": "2026-10-29T03:20:04Z" },
-    { "id": "mobile-fullscreen", "owner": "main", "role": "프론트엔드/검증", "title": "모바일 브라우저 전체 화면과 반응형 침머라", "status": "running", "evidence": ["모바일 Scale.RESIZE 적용으로 844×390·780×360·740×360 캔버스 전체 채움 확인", "공개 URL 전체 화면·이동 유지 재장전·무기 변경 2/2 통과", "heavy 터치 완주 61796ms·HP 397/520·최대 72기·page error 0", "10단계 캠페인 통합 후 전체 회귀 재실행 필요"], "updatedAt": "2026-10-29T04:24:58Z" },
+    { "id": "mobile-fullscreen", "owner": "main", "role": "프론트엔드/검증", "title": "모바일 브라우저 전체 화면과 반응형 침머라", "status": "running", "evidence": ["모바일 Scale.RESIZE와 전체 화면·공개 입력 2/2, 개별 10단계 터치 완주 통과", "전체 회귀에서 작은 가로 화면 #weapon-slots 검증과 모바일 10단계 완주가 실패", "잔여 2건을 실제 터치로 재현해 수정 중"], "updatedAt": "2026-10-30T10:01:11Z" },
     { "id": "campaign-design", "owner": "planner", "role": "기획", "title": "10단계 목표·난이도·무기 해금 설계", "status": "done", "evidence": ["10개 스테이지와 세 레이아웃, 4개 신규 무기, 시작·클리어·최종 완료 연출 계획 승인", "캠페인 코어·아트·검증의 파일 소유권과 실제 입력 검증 계획 확정"], "updatedAt": "2026-10-29T05:42:15Z" },
-    { "id": "campaign-core", "owner": "frontend", "role": "캠페인 개발", "title": "10단계 목표·웨이브·무기 구현", "status": "running", "evidence": ["campaign/campaign-logic/weapon-behaviors 구현과 관련 Vitest 3개 파일 32/32 통과", "npx tsc --noEmit은 SwarmScene 캠페인·7개 무기 연결 미완으로 실패", "docs/campaign-handoff.md에 미완 계약과 오류를 기록"], "updatedAt": "2026-10-29T13:27:01Z" },
-    { "id": "campaign-art", "owner": "designer", "role": "아트", "title": "신규 무기·보스·효과·시설 아트", "status": "running", "evidence": ["무기 7종·적 보행·엘리트·Alpha·효과·환경 SVG와 fallback 파일 추가", "브라우저 로드·렌더링·단계 전환 정리는 캠페인 통합 후 검증 필요"], "updatedAt": "2026-10-29T13:27:01Z" },
-    { "id": "campaign-tests", "owner": "test", "role": "검증", "title": "실제 입력 캠페인·회귀 검증", "status": "running", "evidence": ["campaign-data/campaign-driver-utils/artifacts/visuals.spec.ts 추가", "단계별 실제 입력·모바일 완주·전체 회귀·프로덕션 검증은 실행 전"], "updatedAt": "2026-10-29T13:27:01Z" },
-    { "id": "campaign-integration", "owner": "main", "role": "통합", "title": "캠페인 UI·통합·프로덕션 검증", "status": "running", "evidence": ["공통 계약, 단계 오버레이, 7개 무기 UI와 README/PROJECT_MASTER 경고 추가", "HudData.campaign/reward와 continueCampaign 미구현으로 타입 검사 실패", "docs/campaign-handoff.md에 새 세션 프롬프트와 재개 순서 기록"], "updatedAt": "2026-10-29T13:27:01Z" }
+    { "id": "campaign-core", "owner": "frontend", "role": "캠페인 개발", "title": "10단계 목표·웨이브·무기 구현", "status": "done", "evidence": ["SwarmScene에 캠페인 단일 런타임, 단계 전이·체크포인트·7개 무기 연결 완료", "전체 Vitest 56/56과 npx tsc --noEmit 통과", "ARC·Rail·Flame·Mine 실제 피해와 elite·Alpha 처치 확인"], "updatedAt": "2026-10-30T10:01:11Z" },
+    { "id": "campaign-art", "owner": "designer", "role": "아트", "title": "신규 무기·보스·효과·시설 아트", "status": "done", "evidence": ["무기 7종·elite·Alpha·효과·세 레이아웃 SVG와 fallback 통합", "캠페인 개별 데스크톱·모바일 완주와 프로덕션 렌더링 검증 통과", "전체 E2E에서 아트·자산 관련 실패 보고 없음"], "updatedAt": "2026-10-30T10:01:11Z" },
+    { "id": "campaign-tests", "owner": "test", "role": "검증", "title": "실제 입력 캠페인·회귀 검증", "status": "running", "evidence": ["데스크톱 heavy 1276기·HP 110, scout 1305기·HP 120, 모바일 heavy 1293기·HP 166 개별 완주", "프로덕션·공개 URL 실제 입력 2/2 통과", "전체 Chromium E2E 22/25: mobile-controls·mobile-mission·stress 각 1건 실패", "실패 3건 수정 후 전체 25/25 재검증 필요"], "updatedAt": "2026-10-30T10:01:11Z" },
+    { "id": "campaign-integration", "owner": "main", "role": "통합", "title": "캠페인 UI·통합·프로덕션 검증", "status": "running", "evidence": ["HudData.campaign/reward, continueCampaign(), GameSnapshot.campaign과 7개 무기 발사 연결 완료", "npm run verify·npm run build:pages·프로덕션 미리보기·공개 URL 통과", "전체 E2E 22/25의 잔여 회귀 3건 수정 중", "docs/campaign-handoff.md에 검증 결과와 새 세션 프롬프트 기록"], "updatedAt": "2026-10-30T10:01:11Z" }
   ],
   "verification": [
     { "name": "초기 프로덕션 빌드", "command": "npm run build", "status": "passed", "runAt": "2026-10-26T01:06:25Z", "evidence": "TypeScript와 Vite 다중 페이지 빌드 성공" },
@@ -98,7 +98,11 @@
     { "name": "아트·멀티터치 프로덕션 경로", "command": "SWARM_BASE_URL=http://127.0.0.1:4173/swarm-shooter npm run test:e2e -- visuals.spec.ts mobile-controls.spec.ts --grep '캐릭터 보행과|이동을 유지한 채'", "status": "passed", "runAt": "2026-10-29T02:57:49Z", "evidence": "프로덕션 /swarm-shooter/ 경로에서 캐릭터 시각과 이동 유지 재장전·무기 변경 2/2 통과" },
     { "name": "공개 모바일 멀티터치와 접속", "command": "SWARM_BASE_URL=https://next-still-absorption-item.trycloudflare.com npm run test:e2e -- mobile-controls.spec.ts --grep '이동을 유지한 채'", "status": "passed", "runAt": "2026-10-28T23:42:43Z", "evidence": "공개 URL에서 이동 유지 재장전·무기 변경 통과, 게임·대시보드·API와 신규 에셋 HTTP 200" },
     { "name": "최종 표준 검증", "command": "npm run verify", "status": "passed", "runAt": "2026-10-29T03:27:59Z", "evidence": "상태 검증 10/10, Vitest 24/24, TypeScript와 Vite 프로덕션 빌드 통과" },
-    { "name": "최종 GitHub Pages 빌드", "command": "npm run build:pages", "status": "passed", "runAt": "2026-10-29T03:27:59Z", "evidence": "/swarm-shooter/ base 프로덕션 빌드 통과, 게임 JS 1272.93kB와 기존 청크 크기 경고" }
+    { "name": "최종 GitHub Pages 빌드", "command": "npm run build:pages", "status": "passed", "runAt": "2026-10-29T03:27:59Z", "evidence": "/swarm-shooter/ base 프로덕션 빌드 통과, 게임 JS 1272.93kB와 기존 청크 크기 경고" },
+    { "name": "캠페인 단위·타입·프로덕션 검증", "command": "npx vitest run && npx tsc --noEmit && npm run verify && npm run build:pages", "status": "passed", "runAt": "2026-10-30T09:57:00Z", "evidence": "Vitest 56/56, TypeScript strict, 상태 검증·Vite 빌드·/swarm-shooter/ Pages 빌드 통과" },
+    { "name": "캠페인 세 환경 개별 완주", "command": "데스크톱·모바일 실제 입력 캠페인 E2E", "status": "passed", "runAt": "2026-10-30T09:57:00Z", "evidence": "heavy 1276기·HP 110, scout 1305기·HP 120, 모바일 heavy 1293기·HP 166으로 10단계·MISSION COMPLETE·재시작 통과" },
+    { "name": "캠페인 프로덕션·공개 URL", "command": "프로덕션 및 Cloudflare URL 실제 입력 검증", "status": "passed", "runAt": "2026-10-30T09:57:00Z", "evidence": "/swarm-shooter/ 게임·대시보드·API HTTP 200과 이동·사격·재장전·일시정지·재시작 2/2 통과" },
+    { "name": "캠페인 전체 Chromium 회귀", "command": "npm run test:e2e", "status": "failed", "runAt": "2026-10-30T09:57:00Z", "evidence": "22/25 통과. mobile-controls의 작은 가로 화면 #weapon-slots 검증 실패, mobile-mission과 stress가 10단계 s10-guard에서 사망" }
   ],
   "failures": [
     { "name": "npm 10.9.3 업데이트", "command": "npm install", "status": "resolved", "runAt": "2026-10-26T01:04:00Z", "evidence": "Arborist edgesOut 오류를 npm 11.6.2로 해결했고 audit 0건 확인" },
@@ -115,28 +119,28 @@
     { "name": "이동 유지 중 재장전·무기 변경 불가", "command": "npm run test:e2e -- mobile-controls.spec.ts --grep '이동을 유지한 채'", "status": "resolved", "runAt": "2026-10-28T23:42:43Z", "evidence": "두 번째 터치에서 click 미발생을 재현하고 pointerdown 즉시 실행·중복 click 억제로 수정. 로컬 모바일 7개와 시각 테스트 포함 8/8, 공개 URL 동일 시나리오 통과" },
     { "name": "모바일 승리 직후 숨은 스틱 재입력", "command": "npm run test:e2e -- mobile-mission.spec.ts", "status": "resolved", "runAt": "2026-10-29T02:57:49Z", "evidence": "전체 22/23 후 승리 화면에서 드라이버가 숨은 스틱을 다시 누르는 경쟁을 확인하고 비전투 상태 입력 해제로 수정. heavy 99425ms·HP 326/520·최대 72기 완주와 재시작, page error 0" },
     { "name": "전체 화면 탈출 근처 회피 경로", "command": "npm run test:e2e -- mobile-mission.spec.ts", "status": "resolved", "runAt": "2026-10-29T04:51:25Z", "evidence": "승강기 근처에서도 회피가 우선이라 맵 모서리에서 사망한 사례를 확인하고 목표 180px 이내 탈출 우선으로 보정. heavy 65234ms·HP 314/520·최대 72기 완주, page error 0" },
-    { "name": "10단계 캠페인 중간 타입 검사", "command": "npx tsc --noEmit", "status": "failed", "runAt": "2026-10-29T13:27:01Z", "evidence": "campaign 순수 Vitest 32/32는 통과했지만 SwarmScene의 HudData.campaign/reward, continueCampaign(), GameSnapshot.campaign과 7개 무기 발사 연결이 미완성이라 타입 검사 15건이 실패했습니다." }
+    { "name": "10단계 캠페인 중간 타입 검사", "command": "npx tsc --noEmit", "status": "resolved", "runAt": "2026-10-30T09:57:00Z", "evidence": "HudData.campaign/reward, continueCampaign(), GameSnapshot.campaign과 7개 무기 발사 연결을 완료해 npx tsc --noEmit과 Vitest 56/56 통과" },
+    { "name": "캠페인 전체 회귀 잔여 3건", "command": "npm run test:e2e", "status": "failed", "runAt": "2026-10-30T09:57:00Z", "evidence": "22/25 통과. mobile-controls의 작은 가로 화면 #weapon-slots 검증 실패와 mobile-mission·stress의 s10-guard 사망이 남아 있습니다. 원인은 추가 조사 중입니다." }
   ],
   "knownIssues": [
-    "10단계 캠페인은 데이터·순수 로직·UI 파일은 추가됐지만 SwarmScene 통합이 남아 현재 npx tsc --noEmit이 실패합니다.",
-    "10단계 캠페인의 전체 E2E, 프로덕션 빌드, 공개 URL, 실기기 모바일 검증은 아직 실행하지 않았습니다.",
+    "전체 Chromium E2E가 22/25이며 mobile-controls·mobile-mission·stress 각 1건을 수정해야 합니다.",
     "Windows headless SwiftShader에서 53기 전투 평균 12.55fps(35샘플)로 측정됐으며, 실제 하드웨어 가속 60fps는 검증하지 않았습니다.",
     "실제 모바일 하드웨어 FPS, Safari, 청감 사격감·사운드·발열은 별도 실기기 확인이 필요합니다.",
-    "프로덕션 게임 JS는 Phaser 포함 약 1.27MB로 Vite 청크 크기 경고가 있습니다.",
-    "마지막 공개 Cloudflare 주소는 세션 종료로 현재 유효하지 않을 수 있습니다."
+    "프로덕션 게임 JS는 Phaser 포함 대형 청크로 Vite 크기 경고가 있습니다.",
+    "현재 Cloudflare quick tunnel 주소는 임시이며 터널 종료 후 접속할 수 없습니다."
   ],
   "blockers": [],
   "servers": {
-    "gameUrl": "http://127.0.0.1:5173/",
-    "dashboardUrl": "http://127.0.0.1:5173/dashboard.html",
-    "publicGameUrl": "https://next-still-absorption-item.trycloudflare.com/",
-    "publicDashboardUrl": "https://next-still-absorption-item.trycloudflare.com/dashboard.html"
+    "gameUrl": "http://127.0.0.1:4173/swarm-shooter/",
+    "dashboardUrl": "http://127.0.0.1:4173/swarm-shooter/dashboard.html",
+    "publicGameUrl": "https://pretty-disposal-beauty-commons.trycloudflare.com/swarm-shooter/",
+    "publicDashboardUrl": "https://pretty-disposal-beauty-commons.trycloudflare.com/swarm-shooter/dashboard.html"
   },
   "git": {
     "branch": "main",
-    "commit": "HEAD",
+    "commit": "5a02174",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "campaign-handoff:pushed"
+    "remoteSync": "campaign-implementation-pushed;verification-handoff-pending"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
@@ -186,10 +190,10 @@
     "PROJECT_MASTER.md"
   ],
   "nextActions": [
-    "새 세션에서 docs/campaign-handoff.md를 읽고 npx tsc --noEmit부터 통과시킬 것",
-    "SwarmScene에 HudData.campaign/reward, continueCampaign(), GameSnapshot.campaign과 7개 무기 발사 흐름을 연결할 것",
-    "단계 1/4/7/10의 실제 입력 브라우저 테스트 후 전체 E2E와 프로덕션 빌드를 검증할 것",
-    "검증이 끝난 뒤 README, PROJECT_MASTER, docs, project-status를 완료 상태로 갱신할 것"
+    "mobile-controls의 작은 가로 화면 #weapon-slots 실패 원인을 확인하고 실제 터치로 재검증할 것",
+    "mobile-mission과 stress의 10단계 s10-guard 사망 원인을 실제 HP·적·보급·탄약 증거로 수정할 것",
+    "npx vitest run·npx tsc --noEmit·npm run verify 후 전체 npm run test:e2e 25/25를 통과할 것",
+    "npm run build:pages·프로덕션 미리보기·공개 URL을 다시 검증하고 결과만 문서에 반영할 것"
   ],
-  "resumeNotes": "10단계 캠페인 데이터·순수 로직·신규 무기 동작 테스트는 추가됐고 관련 Vitest 32/32가 통과했지만 SwarmScene 통합이 끝나지 않아 npx tsc --noEmit가 실패하는 중간 커밋입니다. docs/campaign-handoff.md에 현재 파일 상태, 실패 원인, 작업 순서, 새 세션 프롬프트를 기록했습니다. 전체 E2E·프로덕션·공개 URL·실기기 검증은 아직이며 완료로 표기하면 안 됩니다."
+  "resumeNotes": "10단계 캠페인과 4개 해금 무기, 단계 시작·클리어·최종 완료·체크포인트 통합을 완료했습니다. Vitest 56/56, TypeScript, verify, Pages 빌드와 데스크톱 두 캐릭터·모바일 heavy 개별 완주, 프로덕션·공개 입력 2/2를 통과했습니다. 그러나 전체 E2E가 22/25로 mobile-controls·mobile-mission·stress 각 1건이 실패하므로 완료로 표기하지 마세요. docs/campaign-handoff.md에 실패 항목과 재개 순서·새 세션 프롬프트·URL을 기록했습니다."
 }
