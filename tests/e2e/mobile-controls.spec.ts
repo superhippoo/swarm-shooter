@@ -10,6 +10,36 @@ async function startMobileRun(page: Page, character: CharacterId): Promise<void>
   await waitForScreen(page, 'playing');
 }
 
+async function startLateTouchRun(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const nativeMatchMedia = window.matchMedia.bind(window);
+    let matches = false;
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    window.matchMedia = ((query: string) => {
+      if (query !== '(pointer: coarse)') return nativeMatchMedia(query);
+      const fake = {
+        media: query,
+        get matches() { return matches; },
+        addEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => {
+          listeners.add(listener);
+        },
+        removeEventListener: (_type: string, listener: (event: MediaQueryListEvent) => void) => {
+          listeners.delete(listener);
+        },
+      } as unknown as MediaQueryList;
+      window.setTimeout(() => {
+        matches = true;
+        const event = { matches, media: query } as MediaQueryListEvent;
+        listeners.forEach((listener) => listener(event));
+      }, 1000);
+      return fake;
+    }) as typeof window.matchMedia;
+  });
+  await page.goto('/');
+  await page.locator('#select-scout').tap();
+  await waitForScreen(page, 'playing');
+}
+
 async function waitForAutoAim(page: Page): Promise<void> {
   await expect.poll(async () => (await snapshot(page)).input.autoAimTargetId, { timeout: 15_000 }).not.toBeNull();
 }
@@ -201,6 +231,14 @@ test.describe('모바일 가상 컨트롤', () => {
       }).toEqual({ x: 0, y: 0, ...size });
       await capturePage(page, `mobile-fullscreen-${size.width}.png`);
     }
+    const size = { width: 900, height: 420 };
+    await page.setViewportSize(size);
+    await startLateTouchRun(page);
+    await expect.poll(async () => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => ({
+      width: canvas.width,
+      height: canvas.height,
+    }))).toEqual(size);
+    await capturePage(page, 'mobile-late-touch-fullscreen.png');
   });
 
   test('작은 가로 화면에서도 overflow와 컨트롤 겹침이 없다', async ({ page }) => {
@@ -217,8 +255,9 @@ test.describe('모바일 가상 컨트롤', () => {
         if (!box) throw new Error(`${id} 영역을 읽을 수 없습니다.`);
         return box;
       };
+      await expect(page.locator('#weapon-slots')).toBeHidden();
       const [move, fire, reload, weapons, pause, previous, next] = await Promise.all([
-        bounds('move-pad'), bounds('fire-button'), bounds('reload-button'), bounds('weapon-slots'), bounds('pause-button'),
+        bounds('move-pad'), bounds('fire-button'), bounds('reload-button'), bounds('touch-weapon-switch'), bounds('pause-button'),
         bounds('weapon-prev'), bounds('weapon-next'),
       ]);
       const overlaps = (a: typeof move, b: typeof move) =>

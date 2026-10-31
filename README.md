@@ -1,6 +1,6 @@
 # SWARM//ZERO
 
-> **현재 상태**: **10단계 캠페인 통합과 잔여 브라우저 회귀 3건 수정 중**입니다. Vitest 56/56, TypeScript, `npm run verify`, Pages 빌드와 데스크톱·모바일 개별 완주는 통과했지만 전체 Chromium 회귀는 **22/25**입니다. 완성본으로 표기하지 않으며 정확한 실패와 재개 순서는 [`docs/campaign-handoff.md`](docs/campaign-handoff.md)를 먼저 읽으세요.
+> **현재 상태**: 10단계 캠페인과 모바일 전체 화면을 구현했고, Vitest **56/56**, TypeScript, `npm run verify`, 전체 Chromium 회귀 **25/25**, Pages 빌드와 프로덕션·공개 URL 실제 입력을 통과했습니다. 검증 수치와 실기기 미검증 항목은 [`docs/campaign-handoff.md`](docs/campaign-handoff.md)를 참고하세요.
 
 독창적인 SVG와 합성 사운드로 만든 데스크톱·모바일 탑다운 웹 호드 슈터입니다. TypeScript, Vite, Phaser 3를 사용하며 10개 스테이지와 7개 무기의 싱글 플레이어 캠페인을 제공합니다.
 
@@ -23,6 +23,18 @@ npm run preview
 ```
 
 미리보기는 기본적으로 `http://127.0.0.1:4173/`입니다.
+
+### 직접 공개 테스트 URL 만들기
+
+프로젝트에 포함된 실행 파일로 최신 코드를 빌드하고 로컬 미리보기와 Cloudflare quick tunnel을 함께 시작할 수 있습니다.
+
+- PowerShell: `.\start-public.cmd`
+- Windows 탐색기: `start-public.cmd` 더블클릭
+- Git Bash: `./start-public.sh`
+
+출력되는 `공개 게임` URL을 브라우저에서 열면 됩니다. 실행 중에는 로컬 게임·대시보드·상태 API 주소도 함께 표시되며, 종료하려면 그 창에서 `Ctrl+C`를 누르세요. 공개 주소는 실행할 때마다 새로 발급되는 임시 주소입니다.
+
+처음 실행하기 전에 `npm ci`가 필요합니다. 터널 실행 파일은 기본적으로 `artifacts/cloudflared/cloudflared.exe`를 사용하며 다른 경로는 `CLOUDFLARED_EXE`로 지정할 수 있습니다. 터널 없이 로컬에서만 확인하려면 `./start-public.sh --local`(또는 `start-public.cmd --local`)을 실행하세요. 이미 빌드한 결과를 재사용하려면 `SKIP_BUILD=1`을 설정합니다.
 
 ## 게임 방법
 
@@ -85,7 +97,11 @@ npm run browser:install
 - 캐릭터 보행·무기별 외형·총구 위치와 선택 초상화
 - 대시보드·상태 API·SVG 제공과 로드 실패 시 생성 텍스처 대체
 
-**최근 결과**: Vitest **56/56**, TypeScript, `npm run verify`, `npm run build:pages` 통과. 데스크톱 heavy **1,276기·HP 110**, scout **1,305기·HP 120**, 모바일 heavy **1,293기·HP 166**로 개별 10단계 완주. 프로덕션·공개 URL 실제 입력 **2/2** 통과. 전체 E2E는 **22/25**로 `mobile-controls`, `mobile-mission`, `stress` 각 1건이 실패했습니다. 원인과 재검증 순서는 `docs/campaign-handoff.md`를 확인하세요.
+**최근 결과**: Vitest **56/56**, TypeScript, `npm run verify`, 전체 E2E **25/25(2.1시간)**, `npm run build:pages` 통과. 데스크톱 heavy **1,339기·HP 137/520**, scout **1,370기·HP 49/400**, 모바일 heavy **1,360기·HP 51/520**로 10단계 완주. 프로덕션과 공개 URL의 실제 입력도 각각 **4/4** 통과했습니다.
+
+공개 테스트: https://powerful-challenging-establishment-observations.trycloudflare.com/swarm-shooter/ (quick tunnel이 실행 중일 때만 유효)
+
+stress는 10단계 최대 72기와 40개 FPS 표본을 확인했으며, Windows headless Chromium 평균 **10.94fps**였습니다. 실제 하드웨어 60fps·S26 Ultra 실기기·Safari·청감은 별도 검증이 필요합니다. 상세 증거는 `docs/campaign-handoff.md`에 있습니다.
 
 기본 포트는 5173이며 필요하면 `SWARM_DEV_PORT` 또는 `SWARM_BASE_URL`로 변경할 수 있습니다.
 

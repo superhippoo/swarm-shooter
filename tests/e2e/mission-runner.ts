@@ -1,6 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 import type { CharacterId, GameSnapshot, WeaponId } from '../../src/shared/game-types';
-import { CAMPAIGN_STAGES as CAMPAIGN_STAGE_DEFINITIONS } from '../../src/game/campaign';
+import { CAMPAIGN_LAYOUTS, CAMPAIGN_STAGES as CAMPAIGN_STAGE_DEFINITIONS } from '../../src/game/campaign';
+import { segmentRectangleTime } from '../../src/game/logic';
+import { hasLineOfSight } from '../../src/game/weapon-behaviors';
 import { capturePage, writeJsonArtifact } from './artifacts';
 import { CAMPAIGN_STAGES, expectedUnlockedWeapons } from './campaign-data';
 import { clampWorldPoint, distance, hasAmmo, summarizeState, weaponState } from './campaign-driver-utils';
@@ -131,6 +133,15 @@ function nearestWorldEnemy(state: GameSnapshot) {
   return selected;
 }
 
+function targetForAim(state: GameSnapshot, preferred: GameSnapshot['enemies'][number] | null) {
+  const obstacles = CAMPAIGN_LAYOUTS[CAMPAIGN_STAGE_DEFINITIONS[state.campaign!.stageIndex].layoutId].obstacles;
+  const candidates = state.enemies.filter((enemy) => enemy.health > 0 &&
+    enemy.screenX >= 0 && enemy.screenX <= 1280 && enemy.screenY >= 0 && enemy.screenY <= 720 &&
+    hasLineOfSight(state.player, enemy, obstacles));
+  if (preferred && candidates.includes(preferred)) return preferred;
+  return candidates.sort((a, b) => distance(a, state.player) - distance(b, state.player))[0] ?? null;
+}
+
 function targetForHunt(state: GameSnapshot) {
   const rank = CAMPAIGN_STAGES[state.campaign?.stageIndex ?? 0].enemyRank;
   if (!rank) return nearestWorldEnemy(state);
@@ -157,11 +168,13 @@ function desiredWeapon(
     if (!evidenceReady && inRange) return exercise;
   }
 
+  if (nearestDistance < 230 && nearby >= 2 && available('mines')) return 'mines';
+  if (nearestDistance < 300 && nearby >= 4 && available('launcher')) return 'launcher';
+  if (nearestDistance < 270 && (nearby >= 2 || nearest?.type !== 'brute') && available('flame')) return 'flame';
   if (campaign.objectiveKind === 'hunt') {
     if (available('rail')) return 'rail';
     if (available('launcher')) return 'launcher';
   }
-  if (nearestDistance < 230 && nearby >= 2 && available('mines')) return 'mines';
   if (nearby >= 3 && available('rail')) return 'rail';
   if (nearestDistance < 230 && nearby >= 4 && available('launcher')) return 'launcher';
   if (nearby >= 2 && available('arc')) return 'arc';
@@ -172,42 +185,149 @@ function desiredWeapon(
   return 'rifle';
 }
 
-interface NavigationState {
-  key: string;
-  sampleAt: number;
-  samplePosition: Point;
-  detourUntil: number;
-  detourPoint: Point;
-  detourSign: number;
-  visitedSupplies: Set<number>;
+interface NavigationRectangle {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
 }
 
-function freshNavigation(state: GameSnapshot, now: number): NavigationState {
+interface NavigationState {
+  key: string;
+  destination: Point | null;
+  route: Point[];
+  rectangles: NavigationRectangle[];
+  corners: Point[];
+}
+
+function freshNavigation(): NavigationState {
   return {
     key: '',
-    sampleAt: now,
-    samplePosition: { x: state.player.x, y: state.player.y },
-    detourUntil: 0,
-    detourPoint: { x: state.player.x, y: state.player.y },
-    detourSign: 1,
-    visitedSupplies: new Set<number>(),
+    destination: null,
+    route: [],
+    rectangles: [],
+    corners: [],
   };
 }
 
-function retreatTarget(state: GameSnapshot): Point {
+function isFreePoint(point: Point, rectangles: NavigationRectangle[]): boolean {
+  return rectangles.every((rectangle) =>
+    point.x <= rectangle.left || point.x >= rectangle.right ||
+    point.y <= rectangle.top || point.y >= rectangle.bottom);
+}
+
+function canTravel(start: Point, end: Point, rectangles: NavigationRectangle[]): boolean {
+  for (const rectangle of rectangles) {
+    const time = segmentRectangleTime(
+      start.x, start.y, end.x, end.y,
+      rectangle.left, rectangle.top, rectangle.right, rectangle.bottom,
+    );
+    if (time === null) continue;
+    const probe = Math.min(1, time + 0.000001);
+    if (!isFreePoint({
+      x: start.x + (end.x - start.x) * probe,
+      y: start.y + (end.y - start.y) * probe,
+    }, [rectangle])) return false;
+  }
+  return true;
+}
+
+function nearestFreePoint(point: Point, navigation: NavigationState): Point {
+  const candidates: Point[] = [];
+  for (const rectangle of navigation.rectangles) {
+    const x = Math.max(rectangle.left, Math.min(rectangle.right, point.x));
+    const y = Math.max(rectangle.top, Math.min(rectangle.bottom, point.y));
+    candidates.push(
+      { x: rectangle.left - 16, y },
+      { x: rectangle.right + 16, y },
+      { x, y: rectangle.top - 16 },
+      { x, y: rectangle.bottom + 16 },
+    );
+  }
+  candidates.push(...navigation.corners);
+  return candidates.filter((candidate) => isFreePoint(candidate, navigation.rectangles))
+    .sort((a, b) => distance(a, point) - distance(b, point))[0] ?? point;
+}
+
+function planRoute(start: Point, target: Point, navigation: NavigationState): Point[] {
+  if (!isFreePoint(start, navigation.rectangles)) {
+    const escape = nearestFreePoint(start, navigation);
+    if (!isFreePoint(escape, navigation.rectangles)) return [];
+    return [escape, ...planRoute(escape, target, navigation)];
+  }
+  const destination = isFreePoint(target, navigation.rectangles) ? target : nearestFreePoint(target, navigation);
+  if (canTravel(start, destination, navigation.rectangles)) return [destination];
+  const points = [start, ...navigation.corners, destination];
+  const costs = points.map(() => Number.POSITIVE_INFINITY);
+  const previous = points.map(() => -1);
+  const visited = new Set<number>();
+  costs[0] = 0;
+  for (let count = 0; count < points.length; count += 1) {
+    let current = -1;
+    for (let index = 0; index < points.length; index += 1) {
+      if (!visited.has(index) && (current < 0 || costs[index] < costs[current])) current = index;
+    }
+    if (current < 0 || !Number.isFinite(costs[current])) break;
+    if (current === points.length - 1) break;
+    visited.add(current);
+    for (let next = 1; next < points.length; next += 1) {
+      if (visited.has(next) || !canTravel(points[current], points[next], navigation.rectangles)) continue;
+      const cost = costs[current] + distance(points[current], points[next]);
+      if (cost < costs[next]) {
+        costs[next] = cost;
+        previous[next] = current;
+      }
+    }
+  }
+  if (!Number.isFinite(costs.at(-1)!)) return [];
+  const route: Point[] = [];
+  for (let index = points.length - 1; index > 0; index = previous[index]) {
+    if (index < 0) return [];
+    route.unshift(points[index]);
+  }
+  return route;
+}
+
+function navigate(state: GameSnapshot, target: Point, navigation: NavigationState): Point {
+  if (canTravel(state.player, target, navigation.rectangles)) {
+    navigation.destination = target;
+    navigation.route = [target];
+    return target;
+  }
+  if (!navigation.destination || distance(navigation.destination, target) > 160 ||
+    (navigation.route.length === 0 && distance(state.player, target) > 12) ||
+    (navigation.route.length > 0 && !canTravel(state.player, navigation.route[0], navigation.rectangles))) {
+    navigation.destination = target;
+    navigation.route = planRoute(state.player, target, navigation);
+  }
+  while (navigation.route.length > 1 && distance(state.player, navigation.route[0]) <= 40 &&
+    canTravel(state.player, navigation.route[1], navigation.rectangles)) {
+    navigation.route.shift();
+  }
+  return navigation.route[0] ?? target;
+}
+
+function retreatTarget(state: GameSnapshot, anchor?: Point, radius = 0): Point {
   let best = { x: state.player.x, y: state.player.y };
   let bestScore = Number.NEGATIVE_INFINITY;
   for (let index = 0; index < 16; index += 1) {
     const angle = (Math.PI * 2 * index) / 16;
-    const candidate = clampWorldPoint({
+    let candidate = clampWorldPoint({
       x: state.player.x + Math.cos(angle) * 320,
       y: state.player.y + Math.sin(angle) * 320,
     });
+    if (anchor && distance(candidate, anchor) > radius) {
+      const direction = Math.atan2(candidate.y - anchor.y, candidate.x - anchor.x);
+      candidate = {
+        x: anchor.x + Math.cos(direction) * radius,
+        y: anchor.y + Math.sin(direction) * radius,
+      };
+    }
     let clearance = Number.POSITIVE_INFINITY;
     for (const enemy of state.enemies) {
       if (enemy.health > 0) clearance = Math.min(clearance, distance(candidate, enemy));
     }
-    const centerPenalty = distance(candidate, { x: 1200, y: 800 }) * 0.04;
+    const centerPenalty = distance(candidate, anchor ?? { x: 1200, y: 800 }) * 0.04;
     const score = clearance - centerPenalty;
     if (score > bestScore) {
       bestScore = score;
@@ -222,30 +342,40 @@ function movementTarget(
   nearest: ReturnType<typeof nearestEnemy>,
   navigation: NavigationState,
   now: number,
+  evade = false,
 ): Point {
   const campaign = state.campaign!;
   const collectionStep = campaign.objectiveKind === 'collect' ? campaign.objectiveProgress : 0;
   const key = `${campaign.stageIndex}:${campaign.objectiveIndex}:${campaign.objectiveId}:${collectionStep}`;
   if (navigation.key !== key) {
     navigation.key = key;
-    navigation.sampleAt = now;
-    navigation.samplePosition = { x: state.player.x, y: state.player.y };
-    navigation.detourUntil = 0;
+    navigation.destination = null;
+    navigation.route = [];
+    navigation.rectangles = CAMPAIGN_LAYOUTS[CAMPAIGN_STAGE_DEFINITIONS[campaign.stageIndex].layoutId].obstacles
+      .map((obstacle) => ({
+        left: obstacle.x - obstacle.width / 2 - 32,
+        top: obstacle.y - obstacle.height / 2 - 32,
+        right: obstacle.x + obstacle.width / 2 + 32,
+        bottom: obstacle.y + obstacle.height / 2 + 32,
+      }));
+    navigation.corners = navigation.rectangles.flatMap((rectangle) => [
+      { x: rectangle.left - 16, y: rectangle.top - 16 },
+      { x: rectangle.right + 16, y: rectangle.top - 16 },
+      { x: rectangle.left - 16, y: rectangle.bottom + 16 },
+      { x: rectangle.right + 16, y: rectangle.bottom + 16 },
+    ]).filter((point) => isFreePoint(point, navigation.rectangles));
   }
 
   const objective = { x: state.mission.worldX, y: state.mission.worldY };
   const kind = campaign.objectiveKind;
   const stageSupplies = CAMPAIGN_STAGE_DEFINITIONS[campaign.stageIndex].supplies;
-  stageSupplies.forEach((supply, index) => {
-    if (distance(state.player, supply) < 52) navigation.visitedSupplies.add(index);
-  });
   let supplyTarget: Point | null = null;
   if (state.player.health <= state.player.maxHealth * 0.65) {
     let nearestDistance = Number.POSITIVE_INFINITY;
     stageSupplies.forEach((supply, index) => {
-      if (navigation.visitedSupplies.has(index) || campaign.stageElapsedMs < supply.atMs) return;
+      if (!state.supplies[index]?.active) return;
       const supplyDistance = distance(state.player, supply);
-      if (supplyDistance < nearestDistance) {
+      if (supplyDistance < nearestDistance && supplyDistance <= 640) {
         nearestDistance = supplyDistance;
         supplyTarget = supply;
       }
@@ -258,14 +388,23 @@ function movementTarget(
   if (supplyTarget) target = supplyTarget;
   else if (kind === 'defend') {
     const centerDistance = distance(state.player, objective);
-    if (centerDistance > 145) target = objective;
+    const nearestDistance = nearest ? distance(nearest, state.player) : Number.POSITIVE_INFINITY;
+    const definition = CAMPAIGN_STAGE_DEFINITIONS[campaign.stageIndex].objectives[campaign.objectiveIndex];
+    const evadeRadius = (definition.kind === 'defend' ? definition.radius : 310) - 40;
+    if (nearest && (nearestDistance < 200 || (evade && nearestDistance < 280))) {
+      target = retreatTarget(state, objective, evadeRadius);
+    }
+    else if (centerDistance > 145) target = objective;
     else {
       const angle = now / 1800;
       target = { x: objective.x + Math.cos(angle) * 115, y: objective.y + Math.sin(angle) * 115 };
     }
   } else if (kind === 'purge' || kind === 'hunt') {
     const nearestDistance = nearest ? distance(nearest, state.player) : Number.POSITIVE_INFINITY;
-    if (nearest && nearestDistance < 240) {
+    const obstacles = CAMPAIGN_LAYOUTS[CAMPAIGN_STAGE_DEFINITIONS[campaign.stageIndex].layoutId].obstacles;
+    if (nearest && !hasLineOfSight(state.player, nearest, obstacles)) {
+      target = { x: nearest.x, y: nearest.y };
+    } else if (nearest && nearestDistance < 240) {
       target = retreatTarget(state);
     } else if (nearest && nearestDistance > 480) target = { x: nearest.x, y: nearest.y };
     else {
@@ -276,27 +415,7 @@ function movementTarget(
   } else {
     target = objective;
   }
-  target = clampWorldPoint(target);
-
-  if (now < navigation.detourUntil) return navigation.detourPoint;
-  if (now - navigation.sampleAt >= 1400) {
-    const moved = distance(state.player, navigation.samplePosition);
-    const remaining = distance(state.player, target);
-    if (moved < 18 && remaining > 85) {
-      const dx = target.x - state.player.x;
-      const dy = target.y - state.player.y;
-      const length = Math.max(1, Math.hypot(dx, dy));
-      navigation.detourSign *= -1;
-      navigation.detourPoint = clampWorldPoint({
-        x: state.player.x + (-dy / length) * 280 * navigation.detourSign + (dx / length) * 70,
-        y: state.player.y + (dx / length) * 280 * navigation.detourSign + (dy / length) * 70,
-      });
-      navigation.detourUntil = now + 1500;
-    }
-    navigation.sampleAt = now;
-    navigation.samplePosition = { x: state.player.x, y: state.player.y };
-  }
-  return now < navigation.detourUntil ? navigation.detourPoint : target;
+  return navigate(state, clampWorldPoint(target), navigation);
 }
 
 function assertPoolCeilings(state: GameSnapshot): void {
@@ -400,7 +519,7 @@ export async function completeCampaign(
       const combatStartedAt = Date.now();
       const observedRanks = new Set<string>();
       const evidence = new Map<WeaponId, WeaponEvidence>();
-      const navigation = freshNavigation(state, combatStartedAt);
+      const navigation = freshNavigation();
       let previous = state;
       let previousObjective = state.campaign?.objectiveId;
       let maxEnemies = 0;
@@ -441,26 +560,30 @@ export async function completeCampaign(
           await writeJsonArtifact(`stage-${String(stageIndex + 1).padStart(2, '0')}-objective-${state.campaign?.objectiveIndex}.json`, summarizeState(state));
         }
 
-        const nearest = state.campaign?.objectiveKind === 'hunt' ? targetForHunt(state) : nearestWorldEnemy(state);
-        const nearestOnScreen = nearestEnemy(state);
-        const aimTarget = nearest && nearest.screenX >= 0 && nearest.screenX <= 1280 &&
-          nearest.screenY >= 0 && nearest.screenY <= 720 ? nearest : nearestOnScreen;
+        const closest = nearestWorldEnemy(state);
+        const nearest = state.campaign?.objectiveKind === 'hunt' &&
+          (!closest || distance(closest, state.player) >= 100) ? targetForHunt(state) : closest;
+        const aimTarget = targetForAim(state, nearest);
         const desired = desiredWeapon(state, evidence);
         const selected = weaponState(state, state.selectedWeapon);
         const needsSwitch = state.selectedWeapon !== desired && now - lastWeaponSwitchAt >= 1200 &&
-          (!selected?.reloading || selected.magazine === 0);
+          !selected?.reloading;
         if (needsSwitch) {
           await driver.selectWeapon(desired);
           lastWeaponSwitchAt = Date.now();
         }
-        const fired = (options.shouldFire?.(state) ?? true)
-          ? await driver.aimAndFire(aimTarget?.id)
-          : (await driver.stop(), false);
+        const shouldFire = options.shouldFire?.(state) ?? true;
+        const fired = shouldFire
+          ? await driver.aimAndFire(aimTarget?.id, state)
+          : (await driver.stopFiring(), false);
         if (!fired && selected && selected.reserve > 0 && selected.magazine <= 2 && !selected.reloading) {
           await driver.reload();
         }
-        const target = movementTarget(state, nearest, navigation, now);
-        await driver.moveToward(target.x, target.y, state.campaign?.objectiveKind === 'extract' ? 16 : 32);
+        const target = movementTarget(state, nearest, navigation, now, !shouldFire);
+        const waypoint = navigation.route.length > 1 && target === navigation.route[0];
+        const supply = state.supplies.some((item) => item.active && item.x === target.x && item.y === target.y);
+        const deadZone = waypoint || supply ? 8 : state.campaign?.objectiveKind === 'extract' ? 16 : 32;
+        await driver.moveToward(target.x, target.y, deadZone, state);
         await page.waitForTimeout(75);
         state = await snapshot(page);
       }

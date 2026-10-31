@@ -10,8 +10,6 @@ test('후반 자연 웨이브 50기 이상에서 실제 사격 성능·풀 상�
   let denseStage = -1;
 
   const campaign = await completeCampaign(page, 'heavy', (currentPage) => new GameDriver(currentPage), {
-    shouldFire: (state) => state.campaign?.stageIndex !== 9 || state.campaign.objectiveKind !== 'defend' ||
-      state.performance.activeEnemies >= 50,
     onCombatSnapshot: async (state) => {
       if (state.campaign!.stageIndex < 6 || state.performance.activeEnemies < 50) return;
       denseStage = state.campaign!.stageIndex;

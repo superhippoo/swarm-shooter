@@ -81,10 +81,11 @@ export function nearestEnemy(state: GameSnapshot): EnemySnapshot | null {
 export interface CombatDriver {
   readonly usesTouch: boolean;
   stop(): Promise<void>;
+  stopFiring(): Promise<void>;
   selectWeapon(id: WeaponId): Promise<void>;
   reload(): Promise<void>;
-  moveToward(x: number, y: number, deadZone?: number): Promise<void>;
-  aimAndFire(targetId?: number): Promise<boolean>;
+  moveToward(x: number, y: number, deadZone?: number, observed?: GameSnapshot): Promise<void>;
+  aimAndFire(targetId?: number, observed?: GameSnapshot): Promise<boolean>;
 }
 
 const weaponKeys = Object.fromEntries(WEAPON_ORDER.map((id, index) => [id, String(index + 1)])) as Record<WeaponId, string>;
@@ -100,6 +101,10 @@ export class GameDriver implements CombatDriver {
   async stop(): Promise<void> {
     for (const key of this.heldKeys) await this.page.keyboard.up(key);
     this.heldKeys.clear();
+    await this.stopFiring();
+  }
+
+  async stopFiring(): Promise<void> {
     if (this.firing) await this.page.mouse.up();
     this.firing = false;
   }
@@ -128,8 +133,8 @@ export class GameDriver implements CombatDriver {
     if ((await snapshot(this.page)).screen === 'playing') await this.page.keyboard.press('r');
   }
 
-  async moveToward(x: number, y: number, deadZone = 36): Promise<void> {
-    const state = await snapshot(this.page);
+  async moveToward(x: number, y: number, deadZone = 36, observed?: GameSnapshot): Promise<void> {
+    const state = observed ?? await snapshot(this.page);
     const desired = new Set<string>();
     const dx = x - state.player.x;
     const dy = y - state.player.y;
@@ -207,8 +212,8 @@ export class GameDriver implements CombatDriver {
     return true;
   }
 
-  async aimAndFire(targetId?: number): Promise<boolean> {
-    const state = await snapshot(this.page);
+  async aimAndFire(targetId?: number, observed?: GameSnapshot): Promise<boolean> {
+    const state = observed ?? await snapshot(this.page);
     if (state.screen !== 'playing') {
       if (this.firing) await this.page.mouse.up();
       this.firing = false;
@@ -223,6 +228,7 @@ export class GameDriver implements CombatDriver {
     const point = await canvasPoint(this.page, enemy.screenX, enemy.screenY);
     await this.page.mouse.move(point.x, point.y);
     if (state.selectedWeapon === 'rifle' || state.selectedWeapon === 'flame') {
+      if (!state.input.firing) this.firing = false;
       if (!this.firing) {
         await this.page.mouse.down();
         this.firing = true;

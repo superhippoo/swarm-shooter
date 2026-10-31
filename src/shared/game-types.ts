@@ -131,6 +131,13 @@ export interface EnemySnapshot {
   health: number;
 }
 
+export interface SupplySnapshot {
+  x: number;
+  y: number;
+  unlocked: boolean;
+  active: boolean;
+}
+
 export interface GameSnapshot {
   screen: GameScreen;
   characterId: CharacterId | null;
@@ -168,6 +175,7 @@ export interface GameSnapshot {
     screenY: number;
   };
   campaign: CampaignSnapshot | null;
+  supplies: SupplySnapshot[];
   enemies: EnemySnapshot[];
   performance: {
     fps: number;

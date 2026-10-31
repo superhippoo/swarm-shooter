@@ -640,6 +640,12 @@ export class SwarmScene extends Phaser.Scene {
         screenY: this.round(objectiveScreen.y),
       },
       campaign: campaignSnap,
+      supplies: this.supplies.map((supply) => ({
+        x: supply.definition.x,
+        y: supply.definition.y,
+        unlocked: supply.unlocked,
+        active: supply.active,
+      })),
       enemies: activeEnemies.map((enemy) => {
         const screen = this.worldToScreen(enemy.sprite.x, enemy.sprite.y);
         return {

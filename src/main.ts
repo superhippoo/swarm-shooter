@@ -299,6 +299,7 @@ function updateHud(data: HudData): void {
   renderStage(currentScreen, data.campaign, data.health, data.maxHealth);
 }
 
+let game: Phaser.Game | null = null;
 const scene = new SwarmScene({
   onReady: () => {
     characterButtons.forEach((button) => { button.disabled = false; });
@@ -316,7 +317,7 @@ const touchControls = new TouchControls({
   onMove: (x, y) => scene.setMoveVector(x, y),
   onFire: (firing) => scene.setTouchFiring(firing),
 });
-const game = new Phaser.Game({
+game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: stage,
   width: 1280,
@@ -329,6 +330,22 @@ const game = new Phaser.Game({
   audio: { noAudio: true },
   scene,
 });
+
+function syncGameScale(): void {
+  if (!game) return;
+  const touch = touchQuery.matches;
+  const mode = touch ? Phaser.Scale.RESIZE : Phaser.Scale.FIT;
+  game.scale.scaleMode = mode;
+  game.scale.displaySize.setAspectMode(touch ? Phaser.Scale.NONE : mode);
+  if (touch) {
+    const width = stage.clientWidth;
+    const height = stage.clientHeight;
+    if (width > 0 && height > 0) game.scale.setParentSize(width, height);
+  } else {
+    game.scale.refresh();
+  }
+}
+
 const uiEvents = new AbortController();
 
 function bindTouchAction(button: HTMLButtonElement, action: () => void): void {
@@ -381,6 +398,7 @@ byId<HTMLInputElement>('shake-toggle').addEventListener('change', (event) => {
 bindTouchAction(byId<HTMLButtonElement>('reload-button'), () => scene.reloadWeapon());
 
 function syncTouchState(): void {
+  syncGameScale();
   const touch = touchQuery.matches;
   const portrait = touch && portraitQuery.matches;
   const controlsEnabled = touch && currentScreen === 'playing' && !portrait;
@@ -395,6 +413,13 @@ function syncTouchState(): void {
 touchQuery.addEventListener('change', syncTouchState);
 portraitQuery.addEventListener('change', syncTouchState);
 syncTouchState();
+
+const onViewportResize = (): void => {
+  if (touchQuery.matches) syncGameScale();
+};
+const viewportObserver = new ResizeObserver(onViewportResize);
+viewportObserver.observe(stage);
+window.visualViewport?.addEventListener('resize', onViewportResize);
 
 const controlledKeys = new Set([
   'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR',
@@ -462,6 +487,8 @@ function destroy(): void {
   if (destroyed) return;
   destroyed = true;
   observer.disconnect();
+  viewportObserver.disconnect();
+  window.visualViewport?.removeEventListener('resize', onViewportResize);
   touchControls.dispose();
   uiEvents.abort();
   touchQuery.removeEventListener('change', syncTouchState);
@@ -475,7 +502,7 @@ function destroy(): void {
   document.removeEventListener('contextmenu', preventContextMenu);
   stage.removeEventListener('wheel', onWheel);
   if (window.swarmDiagnostics === diagnostics) delete window.swarmDiagnostics;
-  game.destroy(true);
+  game?.destroy(true);
 }
 observer.observe(stage, { childList: true });
 window.addEventListener('pagehide', destroy, { once: true });

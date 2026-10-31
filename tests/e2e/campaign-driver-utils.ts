@@ -37,6 +37,7 @@ export function summarizeState(state: GameSnapshot) {
     weapons: state.weapons,
     mission: state.mission,
     campaign: state.campaign,
+    supplies: state.supplies.map((supply) => ({ ...supply })),
     performance: state.performance,
     enemies: state.enemies.map((enemy) => ({
       id: enemy.id,

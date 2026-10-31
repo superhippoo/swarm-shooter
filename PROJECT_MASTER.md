@@ -2,12 +2,12 @@
 
 이 문서는 다른 PC와 다른 세션에서 현재 프로젝트를 그대로 이어서 작업하기 위한 단일 출발점입니다. 먼저 이 문서를 읽고, 이어서 `project-status.json`, `README.md`, `git status`, `git log`를 확인하세요.
 
-- 기준일: 2026-10-30
+- 기준일: 2026-10-31
 - 원격 저장소: https://github.com/superhippoo/swarm-shooter.git
 - 기본 브랜치: `main`
 - 원격 공개 상태: `PUBLIC`
-- 현재 단계: **10단계 캠페인 통합, 잔여 브라우저 회귀 3건 수정 중**
-- **즉시 확인**: 현재 상태와 재개 프롬프트는 `docs/campaign-handoff.md`가 기준입니다. TypeScript·Vitest·프로덕션 빌드는 통과했지만 전체 E2E가 **22/25**이므로 완료로 기록하지 마세요.
+- 현재 단계: **10단계 캠페인과 모바일 전체 화면 완료, 전체 E2E 25/25 통과**
+- **즉시 확인**: 최신 검증 수치·공개 URL·실기기 미검증 범위는 `docs/campaign-handoff.md`와 `project-status.json`을 기준으로 합니다. push는 사용자 승인 전까지 하지 않습니다.
 
 ## 1. 만들고자 한 것
 
@@ -33,7 +33,7 @@
 - 독창적 SVG·합성 사운드·객체 풀·공간 해시·읽기 전용 진단
 - `project-status.json` 기반 실시간 개발 대시보드
 
-데스크톱 heavy·scout와 모바일 heavy는 각각 개별 10단계 완주를 통과했습니다. 다만 전체 Chromium 회귀가 **22/25**이므로 아직 최종 완료가 아닙니다. 완료된 기능을 다시 만들지 말고 남은 세 실패만 수정하세요.
+데스크톱 heavy·scout와 모바일 heavy의 10단계 완주를 포함해 전체 Chromium 회귀 **25/25**를 통과했습니다. 모바일 늦은 터치 인식과 전체 화면 크기, 읽기 전용 보급 진단과 실제 입력 운전자를 보정했습니다. 완료된 캠페인을 다시 만들지 말고 남은 실기기·성능 검증은 별도 승인 작업으로 진행하세요.
 
 ## 3. 실제 게임 규칙
 
@@ -228,17 +228,19 @@ npx playwright install-deps chromium
 
 전체 Chromium **24개** 최종 회귀와 상태 기록은 `project-status.json`을 기준으로 진행합니다.
 
-## 6-4. 10단계 캠페인 통합과 잔여 회귀
+## 6-4. 10단계 캠페인과 회귀 완료
 
-2026-10-30 기준으로 캠페인 장면 통합과 신규 무기 4종을 완료했습니다. 코드 커밋은 `0546943`, `0d7a279`, `5a02174`입니다.
+2026-10-31에 잔여 모바일·stress 회귀를 실제 입력으로 수정하고 최종 검증을 완료했습니다. 최종 커밋은 Git 로그를 확인하세요.
 
 - `npx vitest run` **56/56**, `npx tsc --noEmit`, `npm run verify`, `npm run build:pages` 통과
-- 데스크톱 heavy **1,276기·HP 110**, scout **1,305기·HP 120**, 모바일 heavy **1,293기·HP 166**으로 개별 10단계·`MISSION COMPLETE`·재시작 통과
-- ARC 연쇄·Rail 관통·Flame 원뿔·Mine 폭발의 실제 피해와 elite·Alpha 처치 확인
-- `/swarm-shooter/` 게임·대시보드·API HTTP 200, 프로덕션·공개 URL 실제 입력 **2/2** 통과
-- 전체 `npm run test:e2e`는 **22/25 통과·3건 실패**입니다.
+- 전체 `npm run test:e2e` **25/25 통과(2.1시간)**
+- 데스크톱 heavy **1,339기·HP 137/520**, scout **1,370기·HP 49/400**, 모바일 heavy **1,360기·HP 51/520**로 10단계·`MISSION COMPLETE`·재시작 통과
+- ARC 연쇄·Rail 관통·Flame 원뿔·Mine 폭발과 elite·Alpha 처치를 실제 입력으로 확인
+- stress는 최대 72기·FPS 40샘플·평균 **10.94fps**, page error 0. Windows headless 측정이며 하드웨어 60fps는 미검증
+- `/swarm-shooter/` 게임·대시보드·API HTTP 200, 프로덕션·공개 URL 실제 입력 각 **4/4** 통과
+- 모바일은 늦은 coarse 전환과 900×420 전체 화면을 확인했지만 S26 Ultra 실기기·Safari는 별도 검증이 필요
 
-남은 실패는 작은 가로 화면의 `#weapon-slots` 검증, 모바일 heavy의 `s10-guard` 사망, stress의 `s10-guard` 사망입니다. 실패 원인은 확정하지 않았으므로 다음 세션은 `test-results` 증거와 세 테스트부터 확인해야 합니다. 전체 25/25 전에는 완료로 표기하지 마세요. 공개 URL은 터널 수명에 따라 바뀌므로 현재 주소와 재개 프롬프트는 `docs/campaign-handoff.md`를 확인하세요.
+모바일 컨트롤 9/9와 세 완주·stress가 모두 최종 전체 실행에서 통과했습니다. 실제 보급 추적, 장애물 경로, 재장전 완료와 자동 사격 상태 동기화를 보정했고 프로덕션 전투 수치는 낮추지 않았습니다. stress는 자연 전투에서 50기 이상과 풀 상한을 검증합니다. 현재 공개 URL과 증거 경로는 `docs/campaign-handoff.md`를 확인하세요.
 
 ## 7. Git 상태와 커밋 규칙
 
@@ -276,10 +278,10 @@ git ls-remote origin
 
 ## 9. 다른 세션에 그대로 붙여넣을 명령 프롬프트
 
-전체 파일 목록·실패 항목·명령·URL을 포함한 완성형 프롬프트는 `docs/campaign-handoff.md`의 **“새 세션에 그대로 붙여넣을 프롬프트”**에 있습니다. 그 블록을 그대로 사용하세요.
+최신 구현·검증 결과·공개 URL·실기기 미검증 범위는 `docs/campaign-handoff.md`에 있습니다. 후속 작업을 시작하기 전에 그 문서와 `project-status.json`을 확인하세요.
 
 ```text
-d:/shooting의 총괄 메인 개발 에이전트로 작업하세요. docs/campaign-handoff.md의 새 세션 프롬프트를 읽고 그대로 이어서 실행하세요. 10단계 캠페인을 다시 만들지 말고 남은 E2E 3건을 실제 입력으로 수정한 뒤 전체 회귀·빌드·공개 URL을 검증하세요. 전체 25/25 전에는 완료로 기록하지 말고, push는 명시적 승인 후에만 하세요.
+d:/shooting의 메인 개발 에이전트로 작업하세요. docs/campaign-handoff.md와 project-status.json을 읽고 현재 구현을 이어받으세요. 완료된 10단계 캠페인과 전체 E2E 25/25를 유지하면서, 제가 새로 승인한 작업만 수행하세요. 실기기·하드웨어 성능은 별도 검증이며 push는 명시적 승인 후에만 하세요.
 ```
 
 ### 작업 예시

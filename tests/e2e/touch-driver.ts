@@ -1,5 +1,5 @@
 import { expect, type CDPSession, type Page } from '@playwright/test';
-import type { WeaponId } from '../../src/shared/game-types';
+import type { GameSnapshot, WeaponId } from '../../src/shared/game-types';
 import { unlockedWeaponOrder } from './campaign-driver-utils';
 import { nearestEnemy, snapshot, type CombatDriver } from './game-driver';
 
@@ -45,6 +45,10 @@ export class TouchGameDriver implements CombatDriver {
     await this.endAll();
   }
 
+  async stopFiring(): Promise<void> {
+    await this.setFireInput(false);
+  }
+
   async selectWeapon(id: WeaponId): Promise<void> {
     let state = await snapshot(this.page);
     if (state.screen !== 'playing' || state.selectedWeapon === id) return;
@@ -74,8 +78,8 @@ export class TouchGameDriver implements CombatDriver {
     if ((await snapshot(this.page)).screen === 'playing') await this.tapControl('#reload-button');
   }
 
-  async moveToward(x: number, y: number, deadZone = 36): Promise<void> {
-    const state = await snapshot(this.page);
+  async moveToward(x: number, y: number, deadZone = 36, observed?: GameSnapshot): Promise<void> {
+    const state = observed ?? await snapshot(this.page);
     const dx = x - state.player.x;
     const dy = y - state.player.y;
     const horizontal = dx > deadZone ? 1 : dx < -deadZone ? -1 : 0;
@@ -83,8 +87,8 @@ export class TouchGameDriver implements CombatDriver {
     await this.setMoveInput(horizontal, vertical);
   }
 
-  async aimAndFire(): Promise<boolean> {
-    const state = await snapshot(this.page);
+  async aimAndFire(_targetId?: number, observed?: GameSnapshot): Promise<boolean> {
+    const state = observed ?? await snapshot(this.page);
     const target = state.enemies.find((enemy) => enemy.id === state.input.autoAimTargetId) ?? nearestEnemy(state);
     if (state.screen !== 'playing' || !target) {
       await this.setFireInput(false);

@@ -1,6 +1,6 @@
 # 아키텍처와 작업 경계
 
-> **현재 상태**: 10단계 캠페인이 장면·UI·7개 무기에 통합됐고 TypeScript·Vitest·빌드는 통과했습니다. 전체 Chromium 회귀 22/25의 잔여 3건을 수정 중입니다. 실패와 재개 순서는 `docs/campaign-handoff.md`가 우선합니다.
+> **현재 상태**: 10단계 캠페인과 모바일 전체 화면이 통합됐고, TypeScript·Vitest·프로덕션 빌드와 전체 Chromium 회귀 **25/25**를 통과했습니다. 최신 증거와 미검증 범위는 `docs/campaign-handoff.md`를 기준으로 합니다.
 
 ## 실행
 
@@ -30,7 +30,7 @@
 - `src/game/campaign.ts`는 10개 스테이지의 목표·유한 웨이브·보급·해금과 레이아웃 데이터를 정의한다.
 - `src/game/campaign-logic.ts`는 목표 진행, 필수 스폰 추적, 단계 전이와 체크포인트의 순수 로직을 담당한다.
 - `src/game/weapon-behaviors.ts`는 ARC 연쇄·Rail 관통·Flame 원뿔·Mine 폭발의 대상 계산을 담당하며 장면에서 실제 피해·탄약·목표 진행으로 연결한다.
-- `HudData.campaign/reward`, `continueCampaign()`, `GameSnapshot.campaign`으로 단계 UI와 진단을 연결한다. `stageIntro/stageClear`에서는 입력·스폰·시계·지속 발사가 정지한다.
+- `HudData.campaign/reward`, `continueCampaign()`, `GameSnapshot.campaign/supplies`로 단계 UI와 읽기 전용 진단을 연결한다. 보급 진단은 위치·해금·활성 상태 복사본이다. `stageIntro/stageClear`에서는 입력·스폰·시계·지속 발사가 정지한다.
 
 ## 입력 경계
 
@@ -40,7 +40,7 @@
 - `src/main.ts`의 `bindTouchAction`은 무기·재장전·일시정지 버튼을 터치 `pointerdown`에서 즉시 실행하고 후속 합성 `click`의 중복 실행을 막는다. 마우스와 키보드의 `click`은 유지하며, 이동 터치가 유지된 두 번째 터치도 처리한다.
 - `src/game/SwarmScene.ts`는 터치 이동 벡터와 자동 조준을 처리한다. 화면에 보이는 활성 적 중 장애물에 가려지지 않은 가장 가까운 적을 선택하며 자동으로 발사하지는 않는다.
 - `GameSnapshot.input`은 입력 모드·이동 벡터·사격 상태·자동 조준 대상 ID를 읽기 전용으로 제공한다.
-- `tests/e2e/touch-driver.ts`는 CDP 터치와 탭으로 실제 컨트롤을 조작하고, `mission-runner.ts`는 데스크톱과 모바일 완주에 같은 임무 시나리오를 사용한다.
+- `tests/e2e/touch-driver.ts`는 CDP 터치와 탭으로 실제 컨트롤을 조작하고, `mission-runner.ts`는 데스크톱과 모바일 완주에 같은 임무 시나리오·장애물 경로·보급 진단을 사용한다. 재장전 완료와 실제 사격 상태를 확인하며 상태 변경 치트는 사용하지 않는다.
 
 ## 렌더링 경계
 
