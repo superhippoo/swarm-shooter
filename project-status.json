@@ -141,9 +141,9 @@
   },
   "git": {
     "branch": "main",
-    "commit": "e41e0de",
+    "commit": "fca3763",
     "remote": "https://github.com/superhippoo/swarm-shooter.git",
-    "remoteSync": "verified-commit-pending;push-not-approved"
+    "remoteSync": "verified-commit;push-not-approved"
   },
   "screenshots": [
     "/artifacts/mission-scout-victory.png",
